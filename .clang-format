@@ -1,0 +1,6 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+NamespaceIndentation: All
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+ColumnLimit: 120
