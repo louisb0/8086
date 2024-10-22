@@ -37,3 +37,7 @@ mov [bp], ch
 ; Special case MOD=00 with RM=110
 mov [1234], ch
 mov cx, [1234]
+
+; Immediate to r/m encoding
+mov [bp], byte 12
+mov [bx + di], word 1234

@@ -5,8 +5,8 @@
 
 constexpr std::array<std::string_view, 8> WORD_REGISTERS = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
 constexpr std::array<std::string_view, 8> BYTE_REGISTERS = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
-constexpr std::array<std::string_view, 8> EQUATION = {"bx + si", "bx + di", "bp + si", "bp + di",
-                                                      "si",      "di",      "bp",      "bx"};
+constexpr std::array<std::string_view, 8> EQUATIONS = {"bx + si", "bx + di", "bp + si", "bp + di",
+                                                       "si",      "di",      "bp",      "bx"};
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -34,13 +34,29 @@ public:
         u8 rm = word & 0x0007;
 
         std::string reg_operand = fmt_reg_operand(is_word, reg);
-        std::string rm_operand = fmt_rm_operand(mod, rm, is_word);
+        std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
 
         if (is_reg_dst) {
             print_instruction(reg_operand, rm_operand);
         } else {
             print_instruction(rm_operand, reg_operand);
         }
+    }
+
+    void imm_to_rm(u16 word) {
+        bool is_word = (word & 0x0100) != 0;
+        u8 mod = (word & 0x00C0) >> 6;
+        u8 rm = word & 0x0007;
+
+        // don't like this. not clear what state stuff is left in
+        // read_and_fmt is a giveaway of bad-ness
+        std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
+
+        u16 data = read_byte();
+        if (is_word)
+            data = (read_byte() << 8) | data;
+
+        print_instruction(rm_operand, std::to_string(data));
     }
 
 private:
@@ -53,7 +69,7 @@ private:
         return std::string(is_word ? WORD_REGISTERS[reg] : BYTE_REGISTERS[reg]);
     }
 
-    std::string fmt_rm_operand(u8 mod, u8 rm, bool is_word) {
+    std::string read_and_fmt_rm_operand(u8 mod, u8 rm, bool is_word) {
         switch (mod) {
         case 0b00:
             if (rm == 0b110) {
@@ -63,17 +79,17 @@ private:
                 return "[" + std::to_string(addr) + "]";
             }
 
-            return "[" + std::string(EQUATION[rm]) + "]";
+            return "[" + std::string(EQUATIONS[rm]) + "]";
         case 0b01: {
             u8 disp = read_byte();
 
-            return "[" + std::string(EQUATION[rm]) + " + " + std::to_string(disp) + "]";
+            return "[" + std::string(EQUATIONS[rm]) + " + " + std::to_string(disp) + "]";
         }
         case 0b10: {
             u16 disp = read_word();
             disp = (disp << 8) | (disp >> 8);
 
-            return "[" + std::string(EQUATION[rm]) + " + " + std::to_string(disp) + "]";
+            return "[" + std::string(EQUATIONS[rm]) + " + " + std::to_string(disp) + "]";
         }
         case 0b11:
             return fmt_reg_operand(is_word, rm);
@@ -110,7 +126,9 @@ int main(int argc, char *argv[]) {
         u8 id = (word & 0xF000) >> 12;
         if (id == 0b1000)
             decoder.rm_to_from_reg(word);
-        else
+        else if (id == 0b1011)
             decoder.imm_to_reg(word);
+        else if (id == 0b1100)
+            decoder.imm_to_rm(word);
     }
 }
