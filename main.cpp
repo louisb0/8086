@@ -3,22 +3,25 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
-// TODO: rewrite not be garbage duplicated logic
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
 
 constexpr std::array<std::string_view, 8> WORD_REGISTERS = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
 constexpr std::array<std::string_view, 8> BYTE_REGISTERS = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 constexpr std::array<std::string_view, 8> EQUATIONS = {"bx + si", "bx + di", "bp + si", "bp + di",
                                                        "si",      "di",      "bp",      "bx"};
-
-using u8 = std::uint8_t;
-using u16 = std::uint16_t;
+const std::unordered_map<u8, std::string_view> JUMP_MNEMONICS = {
+    {0x74, "je"},  {0x7C, "jl"},  {0x7E, "jle"},  {0x72, "jb"},    {0x76, "jbe"},    {0x7A, "jp"},  {0x70, "jo"},
+    {0x78, "js"},  {0x75, "jne"}, {0x7D, "jnl"},  {0x7F, "jg"},    {0x73, "jnb"},    {0x77, "ja"},  {0x7B, "jnp"},
+    {0x71, "jno"}, {0x79, "jns"}, {0xE2, "loop"}, {0xE1, "loopz"}, {0xE0, "loopnz"}, {0xE3, "jcxz"}};
 
 class InstructionDecoder {
 public:
     InstructionDecoder(std::ifstream &f) : file(f) {}
 
-    void mov_rm_to_from_reg(u16 word) {
+    void rm_with_reg(const std::string &mnemonic, u16 word) {
         bool is_reg_dst = (word & 0x0200) != 0;
         bool is_word = (word & 0x0100) != 0;
         u8 mod = (word & 0x00C0) >> 6;
@@ -29,26 +32,26 @@ public:
         std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
 
         if (is_reg_dst) {
-            print_instruction("mov", reg_operand, rm_operand);
+            print_instruction(mnemonic, reg_operand, rm_operand);
         } else {
-            print_instruction("mov", rm_operand, reg_operand);
+            print_instruction(mnemonic, rm_operand, reg_operand);
         }
     }
 
-    void mov_imm_to_rm(u16 word) {
+    void imm_to_rm(const std::string &mnemonic, u16 word) {
+        bool should_sign_extend = (word & 0x0200) != 0;
         bool is_word = (word & 0x0100) != 0;
         u8 mod = (word & 0x00C0) >> 6;
         u8 rm = word & 0x0007;
 
-        // don't like this. not clear what state stuff is left in
-        // read_and_fmt is a giveaway of bad-ness
         std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
 
         u16 data = read_byte();
-        if (is_word)
+        if ((!should_sign_extend || mnemonic == "mov") && is_word) {
             data = (read_byte() << 8) | data;
+        }
 
-        print_instruction("mov", rm_operand, std::to_string(data));
+        print_instruction(mnemonic, rm_operand, std::to_string(data));
     }
 
     void mov_imm_to_reg(u16 word) {
@@ -62,50 +65,20 @@ public:
         print_instruction("mov", fmt_reg_operand(is_word, reg), std::to_string(data));
     }
 
-    // literally identical to mov, garbage
-    void add_rm_with_reg_to_either(u16 word) {
-        std::cout << "add_rm_with_reg_to_either" << std::endl;
-        bool is_reg_dst = (word & 0x0200) != 0;
-        bool is_word = (word & 0x00100) != 0;
-        u8 mod = (word & 0x00C0) >> 6;
-        u8 reg = (word & 0x0038) >> 3;
-        u8 rm = word & 0x0007;
-
-        std::string reg_operand = fmt_reg_operand(is_word, reg);
-        std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
-
-        if (is_reg_dst) {
-            print_instruction("add", reg_operand, rm_operand);
-        } else {
-            print_instruction("add", rm_operand, reg_operand);
-        }
-    }
-
-    void add_imm_to_rm(u16 word) {
-        bool should_sign_extend = (word & 0x0200) != 0;
-        bool is_word = (word & 0x0100) != 0;
-        u8 mod = (word & 0x00C0) >> 6;
-        u8 rm = word & 0x0007;
-
-        // don't like this. not clear what state stuff is left in
-        // read_and_fmt is a giveaway of bad-ness
-        std::string rm_operand = read_and_fmt_rm_operand(mod, rm, is_word);
-
-        u16 data = read_byte();
-        if (!should_sign_extend && is_word)
-            data = (read_byte() << 8) | data;
-
-        print_instruction("add", rm_operand, std::to_string(data));
-    }
-
-    void add_imm_to_accumulator(u16 word) {
+    void imm_to_accumulator(const std::string &mnemonic, u16 word) {
         bool is_word = word & 0x0100;
 
         u16 data = word & 0x00FF;
         if (is_word)
             data = (read_byte() << 8) | data;
 
-        print_instruction("add", is_word ? "ax" : "al", std::to_string(data));
+        print_instruction(mnemonic, is_word ? "ax" : "al", std::to_string(data));
+    }
+
+    void jump(u16 word) {
+        int8_t displacement = static_cast<int8_t>(word & 0x00FF);
+
+        std::cout << JUMP_MNEMONICS.find(word >> 8)->second << " " << (int)displacement << std::endl;
     }
 
 private:
@@ -182,17 +155,34 @@ int main(int argc, char *argv[]) {
 
         // should be in the decoder
         if (bits(word, 0, 5) == 0b100010)
-            decoder.mov_rm_to_from_reg(word);
+            decoder.rm_with_reg("mov", word);
         else if (bits(word, 0, 6) == 0b1100011)
-            decoder.mov_imm_to_rm(word);
+            decoder.imm_to_rm("mov", word);
         else if (bits(word, 0, 3) == 0b1011)
-            decoder.mov_imm_to_reg(word); // keep?
+            decoder.mov_imm_to_reg(word);
 
         else if (bits(word, 0, 5) == 0b000000)
-            decoder.add_rm_with_reg_to_either(word);
-        else if (bits(word, 0, 5) == 0b100000)
-            decoder.add_imm_to_rm(word);
+            decoder.rm_with_reg("add", word);
+        else if (bits(word, 0, 5) == 0b100000 && bits(word, 10, 12) == 0b000)
+            decoder.imm_to_rm("add", word);
         else if (bits(word, 0, 6) == 0b0000010)
-            decoder.add_imm_to_accumulator(word);
+            decoder.imm_to_accumulator("add", word);
+
+        else if (bits(word, 0, 5) == 0b001010)
+            decoder.rm_with_reg("sub", word);
+        else if (bits(word, 0, 5) == 0b100000 && bits(word, 10, 12) == 0b101)
+            decoder.imm_to_rm("sub", word);
+        else if (bits(word, 0, 6) == 0b0010110)
+            decoder.imm_to_accumulator("sub", word);
+
+        else if (bits(word, 0, 5) == 0b001110)
+            decoder.rm_with_reg("cmp", word);
+        else if (bits(word, 0, 5) == 0b100000 && bits(word, 10, 12) == 0b111)
+            decoder.imm_to_rm("cmp", word);
+        else if (bits(word, 0, 6) == 0b0011110)
+            decoder.imm_to_accumulator("cmp", word);
+
+        else if (JUMP_MNEMONICS.find(word >> 8) != JUMP_MNEMONICS.end())
+            decoder.jump(word);
     }
 }
