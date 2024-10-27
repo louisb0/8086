@@ -2,7 +2,7 @@
 
 #include <vector>
 
-// TODO(louis): Reduce duplication, align the table.
+// TODO(louis): reduce duplication, align the table
 
 #define MASK(x) x
 #define EQUALS(x) x

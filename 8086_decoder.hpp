@@ -42,15 +42,15 @@ private:
         return (high << 8) | low;
     }
 
-    // TODO(louis): noexcept
-    Instruction rm_with_reg(const InstructionPattern &pattern, u8 first);
-    Instruction imm_to_rm(const InstructionPattern &pattern, u8 first);
-    Instruction imm_to_reg(const InstructionPattern &pattern, u8 first);
-    Instruction imm_to_acc(const InstructionPattern &pattern, u8 first);
-    Instruction jump(const InstructionPattern &pattern, u8 first);
+    Instruction rm_with_reg(const InstructionPattern &pattern, u8 first) noexcept;
+    Instruction imm_to_rm(const InstructionPattern &pattern, u8 first) noexcept;
+    Instruction imm_to_reg(const InstructionPattern &pattern, u8 first) noexcept;
+    Instruction imm_to_acc(const InstructionPattern &pattern, u8 first) noexcept;
+    Instruction jump(const InstructionPattern &pattern, u8 first) noexcept;
 
-    Instruction build_instruction(std::string op, std::string dst, std::string src);
+    Instruction build_instruction(std::string op, std::string dst,
+                                  std::string src) const noexcept;
 
-    std::string fmt_register(bool is_wide, u8 reg);
-    std::string fmt_decode_rm(u8 mod, u8 rm, bool w);
+    std::string fmt_decode_rm(u8 mod, u8 rm, bool w) noexcept;
+    std::string fmt_register(bool is_wide, u8 reg) const noexcept;
 };

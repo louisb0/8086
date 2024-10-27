@@ -7,7 +7,6 @@
 
 struct BitField {
     u8 byte_relative_mask;
-    u8 shift;
 };
 
 struct InstructionPattern {
@@ -32,6 +31,7 @@ struct InstructionPattern {
     } type;
 };
 
+// TODO(louis): does this need to be a class?
 class InstructionMatcher {
 public:
     static const std::vector<InstructionPattern> patterns;

@@ -20,9 +20,8 @@ InstructionDecoder::try_decode(const InstructionPattern &pattern, u8 byte) noexc
         return std::nullopt;
     }
 
-    // TODO(louis): Necessary?
-    assert(bytes.size() == 0);
-
+    // NOTE(louis): ideally all bytes need to come from read_byte(). issue with
+    // ownership from callee who created the file.
     bytes.push_back(byte);
 
     Instruction instruction;
@@ -51,7 +50,8 @@ InstructionDecoder::try_decode(const InstructionPattern &pattern, u8 byte) noexc
     return instruction;
 }
 
-Instruction InstructionDecoder::rm_with_reg(const InstructionPattern &pattern, u8 first) {
+Instruction InstructionDecoder::rm_with_reg(const InstructionPattern &pattern,
+                                            u8 first) noexcept {
     bool d = InstructionMatcher::read_field(pattern.d, first);
     bool w = InstructionMatcher::read_field(pattern.w, first);
 
@@ -68,7 +68,8 @@ Instruction InstructionDecoder::rm_with_reg(const InstructionPattern &pattern, u
                              d ? rm_str : reg_str);
 }
 
-Instruction InstructionDecoder::imm_to_rm(const InstructionPattern &pattern, u8 first) {
+Instruction InstructionDecoder::imm_to_rm(const InstructionPattern &pattern,
+                                          u8 first) noexcept {
     bool s = InstructionMatcher::read_field(pattern.s, first);
     bool w = InstructionMatcher::read_field(pattern.w, first);
 
@@ -93,18 +94,21 @@ Instruction InstructionDecoder::imm_to_rm(const InstructionPattern &pattern, u8 
     return build_instruction(std::string(pattern.op), rm_str, std::to_string(imm));
 }
 
-// NOTE(louis): Triggered by mov only.
-Instruction InstructionDecoder::imm_to_reg(const InstructionPattern &pattern, u8 first) {
+// NOTE(louis): triggered by mov only
+Instruction InstructionDecoder::imm_to_reg(const InstructionPattern &pattern,
+                                           u8 first) noexcept {
     bool w = InstructionMatcher::read_field(pattern.w, first);
     u8 reg = InstructionMatcher::read_field(pattern.reg, first);
 
     u16 imm = w ? read_word() : read_byte();
 
-    return build_instruction(std::string(pattern.op), fmt_register(w, reg),
-                             std::to_string(imm));
+    std::string reg_str = fmt_register(w, reg);
+
+    return build_instruction(std::string(pattern.op), reg_str, std::to_string(imm));
 }
 
-Instruction InstructionDecoder::imm_to_acc(const InstructionPattern &pattern, u8 first) {
+Instruction InstructionDecoder::imm_to_acc(const InstructionPattern &pattern,
+                                           u8 first) noexcept {
     bool w = InstructionMatcher::read_field(pattern.w, first);
 
     u16 imm = w ? read_word() : read_byte();
@@ -113,38 +117,39 @@ Instruction InstructionDecoder::imm_to_acc(const InstructionPattern &pattern, u8
                              std::to_string(imm));
 }
 
-Instruction InstructionDecoder::jump(const InstructionPattern &pattern, u8 first) {
+Instruction InstructionDecoder::jump(const InstructionPattern &pattern,
+                                     u8 first) noexcept {
     u8 second = read_byte();
 
-    // TODO(louis): static_cast?
-    return build_instruction(std::string(pattern.op),
-                             std::to_string(static_cast<int>(second)), "");
+    return build_instruction(std::string(pattern.op), std::to_string(second), "");
 }
 
-// TODO(louis): Move semantics, copying, conversions from string_view in pattern table.
+// TODO(louis): move semantics, copying, conversions from string_view in pattern table
 Instruction InstructionDecoder::build_instruction(std::string op, std::string dst,
-                                                  std::string src) {
+                                                  std::string src) const noexcept {
     return Instruction{std::string(op), std::string(dst), std::string(src),
                        current_address, std::move(bytes)};
 }
 
-std::string InstructionDecoder::fmt_register(bool is_wide, u8 reg) {
+std::string InstructionDecoder::fmt_register(bool is_wide, u8 reg) const noexcept {
     return std::string(is_wide ? WORD_REGISTERS[reg] : BYTE_REGISTERS[reg]);
 }
 
-std::string InstructionDecoder::fmt_decode_rm(u8 mod, u8 rm, bool w) {
+std::string InstructionDecoder::fmt_decode_rm(u8 mod, u8 rm, bool w) noexcept {
     switch (mod) {
     case 0b00:
         if (rm == 0b110) {
             u16 direct = read_word();
             return "[" + std::to_string(direct) + "]";
         }
+
         return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
 
     case 0b01: {
         u8 disp = read_byte();
         if (disp == 0)
             return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
+
         return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) +
                "]";
     }
@@ -153,6 +158,7 @@ std::string InstructionDecoder::fmt_decode_rm(u8 mod, u8 rm, bool w) {
         u16 disp = read_word();
         if (disp == 0)
             return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
+
         return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) +
                "]";
     }
