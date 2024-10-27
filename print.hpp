@@ -1,6 +1,6 @@
 #pragma once
 
-#include "8086_models.hpp"
+#include "models.hpp"
 
 namespace sim::print {
 

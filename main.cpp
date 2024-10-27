@@ -1,8 +1,8 @@
-#include "8086.hpp"
+#include "common.hpp"
 
-#include "8086_decode.hpp"
-#include "8086_print.hpp"
-#include "8086_table.hpp"
+#include "decode.hpp"
+#include "print.hpp"
+#include "table.hpp"
 
 #include <iostream>
 

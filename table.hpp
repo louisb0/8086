@@ -1,8 +1,8 @@
 #pragma once
 
-#include "8086.hpp"
+#include "common.hpp"
 
-#include "8086_models.hpp"
+#include "models.hpp"
 
 #include <string_view>
 #include <vector>

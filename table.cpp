@@ -1,4 +1,6 @@
-#include "8086_table.hpp"
+#include "common.hpp"
+
+#include "table.hpp"
 
 #include <vector>
 

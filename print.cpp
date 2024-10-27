@@ -1,4 +1,6 @@
-#include "8086_print.hpp"
+#include "common.hpp"
+
+#include "print.hpp"
 
 #include <iomanip>
 #include <iostream>

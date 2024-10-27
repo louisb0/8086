@@ -1,9 +1,9 @@
 #pragma once
 
-#include "8086.hpp"
+#include "common.hpp"
 
-#include "8086_models.hpp"
-#include "8086_table.hpp"
+#include "models.hpp"
+#include "table.hpp"
 
 #include <fstream>
 #include <optional>
