@@ -1,6 +1,7 @@
 #include "common.hpp"
 
 #include "decode.hpp"
+#include "instructions.hpp"
 #include "table.hpp"
 
 #include <array>
@@ -21,15 +22,15 @@ namespace {
         "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx"};
 } // namespace
 
-std::optional<models::Instruction> Decoder::try_decode(const table::Encoding &pattern,
-                                                       u8 byte) noexcept {
+std::optional<instructions::Instruction> Decoder::try_decode(const table::Encoding &pattern,
+                                                             u8 byte) noexcept {
     if ((byte & pattern.mask) != pattern.equals) {
         return std::nullopt;
     }
 
     bytes.push_back(byte);
 
-    models::Instruction instruction;
+    instructions::Instruction instruction;
 
     switch (pattern.type) {
     case table::Encoding::Type::RM_WITH_REG:
@@ -55,8 +56,7 @@ std::optional<models::Instruction> Decoder::try_decode(const table::Encoding &pa
     return instruction;
 }
 
-models::Instruction Decoder::rm_with_reg(const table::Encoding &pattern,
-                                         u8 first) noexcept {
+instructions::Instruction Decoder::rm_with_reg(const table::Encoding &pattern, u8 first) noexcept {
     bool d = pattern.d.read(first);
     bool w = pattern.w.read(first);
 
@@ -73,8 +73,7 @@ models::Instruction Decoder::rm_with_reg(const table::Encoding &pattern,
                              d ? rm_str : reg_str);
 }
 
-models::Instruction Decoder::imm_to_rm(const table::Encoding &pattern,
-                                       u8 first) noexcept {
+instructions::Instruction Decoder::imm_to_rm(const table::Encoding &pattern, u8 first) noexcept {
     bool s = pattern.s.read(first);
     bool w = pattern.w.read(first);
 
@@ -98,8 +97,7 @@ models::Instruction Decoder::imm_to_rm(const table::Encoding &pattern,
     return build_instruction(std::string(pattern.mnemonic), rm_str, std::to_string(imm));
 }
 
-models::Instruction Decoder::imm_to_reg(const table::Encoding &pattern,
-                                        u8 first) noexcept {
+instructions::Instruction Decoder::imm_to_reg(const table::Encoding &pattern, u8 first) noexcept {
     bool w = pattern.w.read(first);
     u8 reg = pattern.reg.read(first);
 
@@ -109,24 +107,22 @@ models::Instruction Decoder::imm_to_reg(const table::Encoding &pattern,
     return build_instruction(std::string(pattern.mnemonic), reg_str, std::to_string(imm));
 }
 
-models::Instruction Decoder::imm_to_acc(const table::Encoding &pattern,
-                                        u8 first) noexcept {
+instructions::Instruction Decoder::imm_to_acc(const table::Encoding &pattern, u8 first) noexcept {
     bool w = pattern.w.read(first);
     u16 imm = w ? read_word() : read_byte();
 
-    return build_instruction(std::string(pattern.mnemonic), w ? "ax" : "al",
-                             std::to_string(imm));
+    return build_instruction(std::string(pattern.mnemonic), w ? "ax" : "al", std::to_string(imm));
 }
 
-models::Instruction Decoder::jump(const table::Encoding &pattern, u8 first) noexcept {
+instructions::Instruction Decoder::jump(const table::Encoding &pattern, u8 first) noexcept {
     u8 second = read_byte();
     return build_instruction(std::string(pattern.mnemonic), std::to_string(second), "");
 }
 
-models::Instruction Decoder::build_instruction(std::string op, std::string dst,
-                                               std::string src) const noexcept {
-    return models::Instruction{std::move(op), std::move(dst), std::move(src),
-                               current_address, bytes};
+instructions::Instruction Decoder::build_instruction(std::string op, std::string dst,
+                                                     std::string src) const noexcept {
+    return instructions::Instruction{std::move(op), std::move(dst), std::move(src), current_address,
+                                     bytes};
 }
 
 std::string Decoder::fmt_register(bool is_wide, u8 reg) const noexcept {
@@ -146,16 +142,14 @@ std::string Decoder::fmt_decode_rm(u8 mod, u8 rm, bool w) noexcept {
         u8 disp = read_byte();
         if (disp == 0)
             return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
-        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) +
-               "]";
+        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) + "]";
     }
 
     case 0b10: {
         u16 disp = read_word();
         if (disp == 0)
             return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
-        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) +
-               "]";
+        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) + "]";
     }
 
     case 0b11:

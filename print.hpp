@@ -1,9 +1,9 @@
 #pragma once
 
-#include "models.hpp"
+#include "instructions.hpp"
 
 namespace sim::print {
 
-void instruction(const models::Instruction &inst);
+void instruction(const instructions::Instruction &inst);
 
 } // namespace sim::print

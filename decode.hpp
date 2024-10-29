@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-#include "models.hpp"
+#include "instructions.hpp"
 #include "table.hpp"
 
 #include <fstream>
@@ -16,8 +16,8 @@ class Decoder {
 public:
     Decoder(std::ifstream &file) : file(file), current_address(0) {}
 
-    std::optional<models::Instruction> try_decode(const table::Encoding &pattern,
-                                                  u8 byte) noexcept;
+    std::optional<instructions::Instruction> try_decode(const table::Encoding &pattern,
+                                                        u8 byte) noexcept;
 
 private:
     std::ifstream &file;
@@ -36,14 +36,14 @@ private:
         return (high << 8) | low;
     }
 
-    models::Instruction rm_with_reg(const table::Encoding &pattern, u8 first) noexcept;
-    models::Instruction imm_to_rm(const table::Encoding &pattern, u8 first) noexcept;
-    models::Instruction imm_to_reg(const table::Encoding &pattern, u8 first) noexcept;
-    models::Instruction imm_to_acc(const table::Encoding &pattern, u8 first) noexcept;
-    models::Instruction jump(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction rm_with_reg(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction imm_to_rm(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction imm_to_reg(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction imm_to_acc(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction jump(const table::Encoding &pattern, u8 first) noexcept;
 
-    models::Instruction build_instruction(std::string op, std::string dst,
-                                          std::string src) const noexcept;
+    instructions::Instruction build_instruction(std::string op, std::string dst,
+                                                std::string src) const noexcept;
     std::string fmt_decode_rm(u8 mod, u8 rm, bool w) noexcept;
     std::string fmt_register(bool is_wide, u8 reg) const noexcept;
 };

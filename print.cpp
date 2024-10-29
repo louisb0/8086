@@ -1,5 +1,6 @@
 #include "common.hpp"
 
+#include "instructions.hpp"
 #include "print.hpp"
 
 #include <iomanip>
@@ -7,14 +8,14 @@
 #include <sstream>
 
 namespace sim::print {
+
 namespace {
-    std::string format_instruction(const models::Instruction &inst) {
+    std::string format_instruction(const instructions::Instruction &inst) {
         std::stringstream ss;
         ss << std::hex << std::setfill('0') << std::setw(4) << inst.address << "  ";
 
         for (u8 byte : inst.bytes) {
-            ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte)
-               << " ";
+            ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte) << " ";
         }
 
         for (size_t i = inst.bytes.size(); i < 6; i++) {
@@ -30,7 +31,8 @@ namespace {
     }
 } // namespace
 
-void instruction(const models::Instruction &inst) {
+void instruction(const instructions::Instruction &inst) {
     std::cout << format_instruction(inst) << '\n';
 }
+
 } // namespace sim::print

@@ -3,4 +3,4 @@ IndentWidth: 4
 NamespaceIndentation: Inner
 AccessModifierOffset: -4
 IndentAccessModifiers: false
-ColumnLimit: 90
+ColumnLimit: 100

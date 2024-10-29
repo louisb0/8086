@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace sim::models {
+namespace sim::instructions {
 
 // TODO(louis): create a proper abstraction. strings whole zero meaning to the system
 struct Instruction {
@@ -17,4 +17,4 @@ struct Instruction {
     std::vector<u8> bytes;
 };
 
-} // namespace sim::models
+} // namespace sim::instructions
