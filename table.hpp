@@ -2,12 +2,27 @@
 
 #include "common.hpp"
 
-#include "models.hpp"
-
 #include <string_view>
 #include <vector>
 
 namespace sim::decode::table {
+
+struct BitField {
+    u8 mask;
+    u8 shift;
+
+    constexpr u8 read(u8 byte) const noexcept { return (byte & mask) >> shift; }
+
+    static constexpr BitField create(u8 mask) noexcept {
+        u8 shift = 0;
+        u8 temp_mask = mask;
+        while (temp_mask && !(temp_mask & 1)) {
+            shift++;
+            temp_mask >>= 1;
+        }
+        return BitField{mask, shift};
+    }
+};
 
 struct Encoding {
     std::string_view mnemonic;
@@ -16,12 +31,12 @@ struct Encoding {
     u8 mask;
     u8 equals;
 
-    models::BitField d;
-    models::BitField s;
-    models::BitField w;
-    models::BitField mod;
-    models::BitField reg;
-    models::BitField rm;
+    BitField d;
+    BitField s;
+    BitField w;
+    BitField mod;
+    BitField reg;
+    BitField rm;
 
     enum Type {
         RM_WITH_REG,

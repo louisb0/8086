@@ -10,13 +10,13 @@
 namespace sim::decode::table {
 
 namespace {
-    constexpr auto NONE = models::BitField{0x00, 0};
-    constexpr auto D(u8 x) { return models::BitField::create(x); }
-    constexpr auto S(u8 x) { return models::BitField::create(x); }
-    constexpr auto W(u8 x) { return models::BitField::create(x); }
-    constexpr auto MOD(u8 x) { return models::BitField::create(x); }
-    constexpr auto REG(u8 x) { return models::BitField::create(x); }
-    constexpr auto RM(u8 x) { return models::BitField::create(x); }
+    constexpr auto NONE = BitField{0x00, 0};
+    constexpr auto D(u8 x) { return BitField::create(x); }
+    constexpr auto S(u8 x) { return BitField::create(x); }
+    constexpr auto W(u8 x) { return BitField::create(x); }
+    constexpr auto MOD(u8 x) { return BitField::create(x); }
+    constexpr auto REG(u8 x) { return BitField::create(x); }
+    constexpr auto RM(u8 x) { return BitField::create(x); }
 } // namespace
 
 // clang-format off
