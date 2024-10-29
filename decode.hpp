@@ -16,7 +16,7 @@ class Decoder {
 public:
     Decoder(std::ifstream &file) : file(file), current_address(0) {}
 
-    std::optional<instructions::Instruction> try_decode(const table::Encoding &pattern,
+    std::optional<instructions::Instruction> try_decode(const table::Encoding &encoding,
                                                         u8 byte) noexcept;
 
 private:
@@ -36,11 +36,11 @@ private:
         return (high << 8) | low;
     }
 
-    instructions::Instruction rm_with_reg(const table::Encoding &pattern, u8 first) noexcept;
-    instructions::Instruction imm_to_rm(const table::Encoding &pattern, u8 first) noexcept;
-    instructions::Instruction imm_to_reg(const table::Encoding &pattern, u8 first) noexcept;
-    instructions::Instruction imm_to_acc(const table::Encoding &pattern, u8 first) noexcept;
-    instructions::Instruction jump(const table::Encoding &pattern, u8 first) noexcept;
+    instructions::Instruction rm_with_reg(const table::Encoding &encoding, u8 first) noexcept;
+    instructions::Instruction imm_to_rm(const table::Encoding &encoding, u8 first) noexcept;
+    instructions::Instruction imm_to_reg(const table::Encoding &encoding, u8 first) noexcept;
+    instructions::Instruction imm_to_acc(const table::Encoding &encoding, u8 first) noexcept;
+    instructions::Instruction jump(const table::Encoding &encoding, u8 first) noexcept;
 
     instructions::Instruction build_instruction(std::string op, std::string dst,
                                                 std::string src) const noexcept;

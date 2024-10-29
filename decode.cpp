@@ -22,9 +22,9 @@ namespace {
         "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx"};
 } // namespace
 
-std::optional<instructions::Instruction> Decoder::try_decode(const table::Encoding &pattern,
+std::optional<instructions::Instruction> Decoder::try_decode(const table::Encoding &encoding,
                                                              u8 byte) noexcept {
-    if ((byte & pattern.mask) != pattern.equals) {
+    if ((byte & encoding.mask) != encoding.equals) {
         return std::nullopt;
     }
 
@@ -32,21 +32,21 @@ std::optional<instructions::Instruction> Decoder::try_decode(const table::Encodi
 
     instructions::Instruction instruction;
 
-    switch (pattern.type) {
+    switch (encoding.type) {
     case table::Encoding::Type::RM_WITH_REG:
-        instruction = rm_with_reg(pattern, byte);
+        instruction = rm_with_reg(encoding, byte);
         break;
     case table::Encoding::Type::IMM_TO_RM:
-        instruction = imm_to_rm(pattern, byte);
+        instruction = imm_to_rm(encoding, byte);
         break;
     case table::Encoding::Type::IMM_TO_REG:
-        instruction = imm_to_reg(pattern, byte);
+        instruction = imm_to_reg(encoding, byte);
         break;
     case table::Encoding::Type::IMM_TO_ACC:
-        instruction = imm_to_acc(pattern, byte);
+        instruction = imm_to_acc(encoding, byte);
         break;
     case table::Encoding::Type::JUMP:
-        instruction = jump(pattern, byte);
+        instruction = jump(encoding, byte);
         break;
     }
 
@@ -56,36 +56,36 @@ std::optional<instructions::Instruction> Decoder::try_decode(const table::Encodi
     return instruction;
 }
 
-instructions::Instruction Decoder::rm_with_reg(const table::Encoding &pattern, u8 first) noexcept {
-    bool d = pattern.d.read(first);
-    bool w = pattern.w.read(first);
+instructions::Instruction Decoder::rm_with_reg(const table::Encoding &encoding, u8 first) noexcept {
+    bool d = encoding.d.read(first);
+    bool w = encoding.w.read(first);
 
     u8 second = read_byte();
 
-    u8 mod = pattern.mod.read(second);
-    u8 reg = pattern.reg.read(second);
-    u8 rm = pattern.rm.read(second);
+    u8 mod = encoding.mod.read(second);
+    u8 reg = encoding.reg.read(second);
+    u8 rm = encoding.rm.read(second);
 
     std::string reg_str = fmt_register(w, reg);
     std::string rm_str = fmt_decode_rm(mod, rm, w);
 
-    return build_instruction(std::string(pattern.mnemonic), d ? reg_str : rm_str,
+    return build_instruction(std::string(encoding.mnemonic), d ? reg_str : rm_str,
                              d ? rm_str : reg_str);
 }
 
-instructions::Instruction Decoder::imm_to_rm(const table::Encoding &pattern, u8 first) noexcept {
-    bool s = pattern.s.read(first);
-    bool w = pattern.w.read(first);
+instructions::Instruction Decoder::imm_to_rm(const table::Encoding &encoding, u8 first) noexcept {
+    bool s = encoding.s.read(first);
+    bool w = encoding.w.read(first);
 
     u8 second = read_byte();
 
-    u8 mod = pattern.mod.read(second);
-    u8 rm = pattern.rm.read(second);
+    u8 mod = encoding.mod.read(second);
+    u8 rm = encoding.rm.read(second);
 
     std::string rm_str = fmt_decode_rm(mod, rm, w);
 
     u16 imm;
-    if (w && (pattern.mnemonic == "mov" || !s)) {
+    if (w && (encoding.mnemonic == "mov" || !s)) {
         imm = read_word();
     } else {
         imm = read_byte();
@@ -94,29 +94,29 @@ instructions::Instruction Decoder::imm_to_rm(const table::Encoding &pattern, u8 
         }
     }
 
-    return build_instruction(std::string(pattern.mnemonic), rm_str, std::to_string(imm));
+    return build_instruction(std::string(encoding.mnemonic), rm_str, std::to_string(imm));
 }
 
-instructions::Instruction Decoder::imm_to_reg(const table::Encoding &pattern, u8 first) noexcept {
-    bool w = pattern.w.read(first);
-    u8 reg = pattern.reg.read(first);
+instructions::Instruction Decoder::imm_to_reg(const table::Encoding &encoding, u8 first) noexcept {
+    bool w = encoding.w.read(first);
+    u8 reg = encoding.reg.read(first);
 
     u16 imm = w ? read_word() : read_byte();
     std::string reg_str = fmt_register(w, reg);
 
-    return build_instruction(std::string(pattern.mnemonic), reg_str, std::to_string(imm));
+    return build_instruction(std::string(encoding.mnemonic), reg_str, std::to_string(imm));
 }
 
-instructions::Instruction Decoder::imm_to_acc(const table::Encoding &pattern, u8 first) noexcept {
-    bool w = pattern.w.read(first);
+instructions::Instruction Decoder::imm_to_acc(const table::Encoding &encoding, u8 first) noexcept {
+    bool w = encoding.w.read(first);
     u16 imm = w ? read_word() : read_byte();
 
-    return build_instruction(std::string(pattern.mnemonic), w ? "ax" : "al", std::to_string(imm));
+    return build_instruction(std::string(encoding.mnemonic), w ? "ax" : "al", std::to_string(imm));
 }
 
-instructions::Instruction Decoder::jump(const table::Encoding &pattern, u8 first) noexcept {
+instructions::Instruction Decoder::jump(const table::Encoding &encoding, u8 first) noexcept {
     u8 second = read_byte();
-    return build_instruction(std::string(pattern.mnemonic), std::to_string(second), "");
+    return build_instruction(std::string(encoding.mnemonic), std::to_string(second), "");
 }
 
 instructions::Instruction Decoder::build_instruction(std::string op, std::string dst,
