@@ -11,6 +11,7 @@
 
 namespace sim::decode {
 
+// TODO(louis): move? more elegant solution than function overloads?
 struct InstructionFields {
     bool is_reg_dst;
     bool is_wide;

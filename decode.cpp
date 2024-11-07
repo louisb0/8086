@@ -10,7 +10,7 @@
 
 namespace sim::decode {
 namespace {
-    static const std::array<std::pair<u8, u8>, 8> EFFECTIVE_ADDRESSES = {{
+    static constexpr std::array<std::pair<u8, u8>, 8> EFFECTIVE_ADDRESSES = {{
         {instructions::registers::BX, instructions::registers::SI},
         {instructions::registers::BX, instructions::registers::DI},
         {instructions::registers::BP, instructions::registers::SI},
@@ -88,8 +88,24 @@ instructions::Instruction Decoder::imm_to_rm(const table::Encoding &encoding, u8
         }
     }
 
+    // TODO(louis): this is bad, many identical entries in the table for different encodings.
+    // maybe we could abstract mask/equals into like a comparison object and we can have 1or2
+    // comparisons to be true before an encoding matches
+    std::string mnemonic;
+    switch (fields.reg) {
+    case 0b000:
+        mnemonic = "add";
+        break;
+    case 0b101:
+        mnemonic = "sub";
+        break;
+    case 0b111:
+        mnemonic = "cmp";
+        break;
+    }
+
     return instructions::Instruction{
-        .mnemonic = std::string(encoding.mnemonic),
+        .mnemonic = mnemonic,
         .dst = rm,
         .src = instructions::Operand::from_immediate(imm),
         .address = current_address,

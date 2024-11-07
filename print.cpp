@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 namespace sim::print {
 
@@ -13,17 +14,17 @@ namespace {
     static const char *WORD_REGISTERS[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
     static const char *BYTE_REGISTERS[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
-    std::string format_register(const instructions::RegisterAccess &reg) {
+    std::string format_register(const instructions::RegisterAccess &reg) noexcept {
         return reg.is_wide ? WORD_REGISTERS[reg.index] : BYTE_REGISTERS[reg.index];
     }
 
-    std::string format_immediate(u16 imm) {
+    std::string format_immediate(u16 imm) noexcept {
         std::stringstream ss;
         ss << std::dec << static_cast<u16>(imm);
         return ss.str();
     }
 
-    std::string format_memory(const instructions::MemoryAccess &mem) {
+    std::string format_memory(const instructions::MemoryAccess &mem) noexcept {
         std::stringstream ss;
         ss << "[";
 
@@ -50,7 +51,7 @@ namespace {
         return ss.str();
     }
 
-    std::string format_operand(const instructions::Operand &op) {
+    std::string format_operand(const instructions::Operand &op) noexcept {
         switch (op.type) {
         case instructions::Operand::Type::REGISTER:
             return format_register(op.reg_access);
@@ -63,7 +64,7 @@ namespace {
         }
     }
 
-    std::string format_instruction(const instructions::Instruction &inst) {
+    std::string format_instruction(const instructions::Instruction &inst) noexcept {
         std::stringstream ss;
 
         ss << std::hex << std::setfill('0') << std::setw(4) << inst.address << "  ";
@@ -86,8 +87,10 @@ namespace {
     }
 } // namespace
 
-void instruction(const instructions::Instruction &inst) {
-    std::cout << format_instruction(inst) << '\n';
+void instructions(const std::vector<instructions::Instruction> &instructions) noexcept {
+    for (const auto &inst : instructions) {
+        std::cout << format_instruction(inst) << '\n';
+    }
 }
 
 } // namespace sim::print
