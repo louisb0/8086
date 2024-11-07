@@ -10,8 +10,62 @@
 namespace sim::print {
 
 namespace {
+    static const char *WORD_REGISTERS[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
+    static const char *BYTE_REGISTERS[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
+
+    std::string format_register(const instructions::RegisterAccess &reg) {
+        return reg.is_wide ? WORD_REGISTERS[reg.index] : BYTE_REGISTERS[reg.index];
+    }
+
+    std::string format_immediate(u16 imm) {
+        std::stringstream ss;
+        ss << std::dec << static_cast<u16>(imm);
+        return ss.str();
+    }
+
+    std::string format_memory(const instructions::MemoryAccess &mem) {
+        std::stringstream ss;
+        ss << "[";
+
+        bool needs_plus = false;
+        for (const instructions::RegisterAccess term : mem.terms) {
+            if (term.index == instructions::registers::NONE)
+                continue;
+
+            if (needs_plus)
+                ss << " + ";
+
+            ss << format_register(term);
+            needs_plus = true;
+        }
+
+        if (mem.displacement != 0) {
+            if (needs_plus)
+                ss << " + ";
+
+            ss << std::dec << static_cast<int16_t>(mem.displacement);
+        }
+
+        ss << "]";
+        return ss.str();
+    }
+
+    std::string format_operand(const instructions::Operand &op) {
+        switch (op.type) {
+        case instructions::Operand::Type::REGISTER:
+            return format_register(op.reg_access);
+        case instructions::Operand::Type::MEMORY:
+            return format_memory(op.mem_access);
+        case instructions::Operand::Type::IMMEDIATE:
+            return format_immediate(op.imm);
+        default:
+            return "???";
+        }
+    }
+
     std::string format_instruction(const instructions::Instruction &inst) {
         std::stringstream ss;
+
         ss << std::hex << std::setfill('0') << std::setw(4) << inst.address << "  ";
 
         for (u8 byte : inst.bytes) {
@@ -22,9 +76,10 @@ namespace {
             ss << "   ";
         }
 
-        ss << inst.op << " " << inst.dst;
-        if (!inst.src.empty()) {
-            ss << ", " << inst.src;
+        ss << inst.mnemonic << " " << format_operand(inst.dst);
+
+        if (inst.src.type != instructions::Operand::Type::NONE) {
+            ss << ", " << format_operand(inst.src);
         }
 
         return ss.str();

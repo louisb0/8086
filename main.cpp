@@ -23,10 +23,6 @@ int main(int argc, char *argv[]) {
     while (file && !file.eof()) {
         u8 first_byte = file.get();
 
-        // NOTE(louis): if this fails, the decoder has gone out of sync. all
-        // instructions being decoded are >= 2 bytes in length.
-        assert(first_byte != file.eof());
-
         // NOTE(louis): inefficient. precompute a jump table or something
         for (const auto &encoding : sim::decode::table::instruction_encodings) {
             if (auto inst = decoder.try_decode(encoding, first_byte)) {

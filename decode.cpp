@@ -6,21 +6,21 @@
 
 #include <array>
 #include <optional>
-#include <string>
 #include <vector>
 
 namespace sim::decode {
-
 namespace {
-    constexpr std::array<std::string_view, 8> WORD_REGISTERS = {"ax", "cx", "dx", "bx",
-                                                                "sp", "bp", "si", "di"};
-
-    constexpr std::array<std::string_view, 8> BYTE_REGISTERS = {"al", "cl", "dl", "bl",
-                                                                "ah", "ch", "dh", "bh"};
-
-    constexpr std::array<std::string_view, 8> EFFECTIVE_ADDRESS = {
-        "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx"};
-} // namespace
+    static const std::array<std::pair<u8, u8>, 8> EFFECTIVE_ADDRESSES = {{
+        {instructions::registers::BX, instructions::registers::SI},
+        {instructions::registers::BX, instructions::registers::DI},
+        {instructions::registers::BP, instructions::registers::SI},
+        {instructions::registers::BP, instructions::registers::DI},
+        {instructions::registers::SI, instructions::registers::NONE},
+        {instructions::registers::DI, instructions::registers::NONE},
+        {instructions::registers::BP, instructions::registers::NONE},
+        {instructions::registers::BX, instructions::registers::NONE},
+    }};
+}
 
 std::optional<instructions::Instruction> Decoder::try_decode(const table::Encoding &encoding,
                                                              u8 byte) noexcept {
@@ -28,6 +28,9 @@ std::optional<instructions::Instruction> Decoder::try_decode(const table::Encodi
         return std::nullopt;
     }
 
+    // TODO(louis): this is hacky. we need this for the very first byte read *externally*.
+    // this is because do not own the input stream (we should). it is owned by the callee.
+    // this should be fixed by creating a memory abstraction, not using a file.
     bytes.push_back(byte);
 
     instructions::Instruction instruction;
@@ -46,7 +49,7 @@ std::optional<instructions::Instruction> Decoder::try_decode(const table::Encodi
         instruction = imm_to_acc(encoding, byte);
         break;
     case table::Encoding::Type::JUMP:
-        instruction = jump(encoding, byte);
+        instruction = jump(encoding);
         break;
     }
 
@@ -57,107 +60,116 @@ std::optional<instructions::Instruction> Decoder::try_decode(const table::Encodi
 }
 
 instructions::Instruction Decoder::rm_with_reg(const table::Encoding &encoding, u8 first) noexcept {
-    bool d = encoding.d.read(first);
-    bool w = encoding.w.read(first);
+    auto fields = InstructionFields::from(encoding, first, read_byte());
 
-    u8 second = read_byte();
+    instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
+    instructions::Operand rm = decode_rm(fields.is_wide, fields.mod, fields.rm);
 
-    u8 mod = encoding.mod.read(second);
-    u8 reg = encoding.reg.read(second);
-    u8 rm = encoding.rm.read(second);
-
-    std::string reg_str = fmt_register(w, reg);
-    std::string rm_str = fmt_decode_rm(mod, rm, w);
-
-    return build_instruction(std::string(encoding.mnemonic), d ? reg_str : rm_str,
-                             d ? rm_str : reg_str);
+    return instructions::Instruction{
+        .mnemonic = std::string(encoding.mnemonic),
+        .dst = fields.is_reg_dst ? reg : rm,
+        .src = fields.is_reg_dst ? rm : reg,
+        .address = current_address,
+        .bytes = bytes,
+    };
 }
-
 instructions::Instruction Decoder::imm_to_rm(const table::Encoding &encoding, u8 first) noexcept {
-    bool s = encoding.s.read(first);
-    bool w = encoding.w.read(first);
+    auto fields = InstructionFields::from(encoding, first, read_byte());
 
-    u8 second = read_byte();
-
-    u8 mod = encoding.mod.read(second);
-    u8 rm = encoding.rm.read(second);
-
-    std::string rm_str = fmt_decode_rm(mod, rm, w);
+    instructions::Operand rm = decode_rm(fields.is_wide, fields.mod, fields.rm);
 
     u16 imm;
-    if (w && (encoding.mnemonic == "mov" || !s)) {
+    if (fields.is_wide && (encoding.mnemonic == "mov" || !fields.is_sign_extended)) {
         imm = read_word();
     } else {
         imm = read_byte();
-        if (s && (imm & 0x80)) {
+        if (fields.is_sign_extended && (imm & 0x80)) {
             imm |= 0xFF00;
         }
     }
 
-    return build_instruction(std::string(encoding.mnemonic), rm_str, std::to_string(imm));
+    return instructions::Instruction{
+        .mnemonic = std::string(encoding.mnemonic),
+        .dst = rm,
+        .src = instructions::Operand::from_immediate(imm),
+        .address = current_address,
+        .bytes = bytes,
+    };
 }
 
+// NOTE(louis): mov only
 instructions::Instruction Decoder::imm_to_reg(const table::Encoding &encoding, u8 first) noexcept {
-    bool w = encoding.w.read(first);
-    u8 reg = encoding.reg.read(first);
+    auto fields = InstructionFields::from(encoding, first);
 
-    u16 imm = w ? read_word() : read_byte();
-    std::string reg_str = fmt_register(w, reg);
+    instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
+    instructions::Operand imm =
+        instructions::Operand::from_immediate(fields.is_wide ? read_word() : read_byte());
 
-    return build_instruction(std::string(encoding.mnemonic), reg_str, std::to_string(imm));
+    return instructions::Instruction{
+        .mnemonic = std::string(encoding.mnemonic),
+        .dst = reg,
+        .src = imm,
+        .address = current_address,
+        .bytes = bytes,
+    };
 }
 
 instructions::Instruction Decoder::imm_to_acc(const table::Encoding &encoding, u8 first) noexcept {
-    bool w = encoding.w.read(first);
-    u16 imm = w ? read_word() : read_byte();
+    auto fields = InstructionFields::from(encoding, first);
 
-    return build_instruction(std::string(encoding.mnemonic), w ? "ax" : "al", std::to_string(imm));
+    instructions::Operand reg = instructions::Operand::from_register(0b000, fields.is_wide);
+    instructions::Operand imm =
+        instructions::Operand::from_immediate(fields.is_wide ? read_word() : read_byte());
+
+    return instructions::Instruction{
+        .mnemonic = std::string(encoding.mnemonic),
+        .dst = reg,
+        .src = imm,
+        .address = current_address,
+        .bytes = bytes,
+    };
 }
 
-instructions::Instruction Decoder::jump(const table::Encoding &encoding, u8 first) noexcept {
-    u8 second = read_byte();
-    return build_instruction(std::string(encoding.mnemonic), std::to_string(second), "");
+instructions::Instruction Decoder::jump(const table::Encoding &encoding) noexcept {
+    instructions::Operand imm = instructions::Operand::from_immediate(read_byte());
+
+    return instructions::Instruction{
+        .mnemonic = std::string(encoding.mnemonic),
+        .dst = imm,
+        .src = instructions::Operand::none(),
+        .address = current_address,
+        .bytes = bytes,
+    };
 }
 
-instructions::Instruction Decoder::build_instruction(std::string op, std::string dst,
-                                                     std::string src) const noexcept {
-    return instructions::Instruction{std::move(op), std::move(dst), std::move(src), current_address,
-                                     bytes};
-}
+instructions::Operand Decoder::decode_rm(bool is_wide, u8 mod, u8 rm) noexcept {
+    using instructions::Operand;
 
-std::string Decoder::fmt_register(bool is_wide, u8 reg) const noexcept {
-    return std::string(is_wide ? WORD_REGISTERS[reg] : BYTE_REGISTERS[reg]);
-}
-
-std::string Decoder::fmt_decode_rm(u8 mod, u8 rm, bool w) noexcept {
     switch (mod) {
-    case 0b00:
+    case 0b00: {
         if (rm == 0b110) {
-            u16 direct = read_word();
-            return "[" + std::to_string(direct) + "]";
+            return Operand::direct_address(read_word(), is_wide);
         }
-        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
+
+        auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
+        return Operand::effective_address(reg1, reg2, 0, is_wide);
+    }
 
     case 0b01: {
-        u8 disp = read_byte();
-        if (disp == 0)
-            return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
-        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) + "]";
+        auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
+        return Operand::effective_address(reg1, reg2, read_byte(), is_wide);
     }
 
     case 0b10: {
-        u16 disp = read_word();
-        if (disp == 0)
-            return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + "]";
-        return "[" + std::string(EFFECTIVE_ADDRESS[rm]) + " + " + std::to_string(disp) + "]";
+        auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
+        return Operand::effective_address(reg1, reg2, read_word(), is_wide);
     }
 
     case 0b11:
-        return fmt_register(w, rm);
+        return Operand::from_register(rm, is_wide);
 
     default:
-        assert(!"Unreachable.");
-        return "";
+        UNREACHABLE();
     }
 }
 
