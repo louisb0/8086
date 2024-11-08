@@ -25,7 +25,7 @@ namespace {
 
 std::optional<instructions::Instruction> Decoder::try_decode(const std::vector<u8> &memory,
                                                              u8 address) noexcept {
-    sim::mem::MemoryReader reader(memory, address);
+    mem::MemoryReader reader(memory, address);
     u8 byte = reader.byte();
 
     for (const auto &encoding : table::instruction_encodings) {
@@ -62,7 +62,7 @@ instructions::Instruction Decoder::rm_with_reg(sim::mem::MemoryReader &reader,
                                                const table::Encoding &encoding, u8 first) noexcept {
     auto fields = instructions::InstructionFields::from(encoding, first, reader.byte());
 
-    instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
+    instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
     instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
     return instructions::Instruction{
@@ -109,7 +109,7 @@ instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
     return instructions::Instruction{
         .mnemonic = mnemonic,
         .dst = rm,
-        .src = instructions::Operand::from_immediate(imm),
+        .src = instructions::Operand::imm(imm),
         .address = reader.get_start_address(),
         .bytes = reader.get_bytes_read(),
     };
@@ -119,9 +119,9 @@ instructions::Instruction Decoder::imm_to_reg(sim::mem::MemoryReader &reader,
                                               const table::Encoding &encoding, u8 first) noexcept {
     auto fields = instructions::InstructionFields::from(encoding, first);
 
-    instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
+    instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
     instructions::Operand imm =
-        instructions::Operand::from_immediate(fields.is_wide ? reader.word() : reader.byte());
+        instructions::Operand::imm(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
@@ -136,9 +136,9 @@ instructions::Instruction Decoder::imm_to_acc(sim::mem::MemoryReader &reader,
                                               const table::Encoding &encoding, u8 first) noexcept {
     auto fields = instructions::InstructionFields::from(encoding, first);
 
-    instructions::Operand reg = instructions::Operand::from_register(0b000, fields.is_wide);
+    instructions::Operand reg = instructions::Operand::reg(0b000, fields.is_wide);
     instructions::Operand imm =
-        instructions::Operand::from_immediate(fields.is_wide ? reader.word() : reader.byte());
+        instructions::Operand::imm(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
@@ -150,7 +150,7 @@ instructions::Instruction Decoder::imm_to_acc(sim::mem::MemoryReader &reader,
 }
 instructions::Instruction Decoder::jump(sim::mem::MemoryReader &reader,
                                         const table::Encoding &encoding) noexcept {
-    instructions::Operand imm = instructions::Operand::from_immediate(reader.byte());
+    instructions::Operand imm = instructions::Operand::imm(reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
@@ -186,7 +186,7 @@ instructions::Operand Decoder::decode_rm(sim::mem::MemoryReader &reader, bool is
     }
 
     case 0b11:
-        return Operand::from_register(rm, is_wide);
+        return Operand::reg(rm, is_wide);
 
     default:
         UNREACHABLE();

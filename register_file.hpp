@@ -22,10 +22,8 @@ private:
 
     u8 &byte_ref(u8 index) noexcept {
         u8 *bytes = reinterpret_cast<u8 *>(regs.data());
-        u8 reg_num = index & 0b11;           // Gets us which register (0-3)
-        bool is_high = (index & 0b100) != 0; // True for high byte (AH, BH, etc)
-        // In little-endian, the low byte comes first in memory
-        // So if we want the high byte, we add 1 to the offset
+        u8 reg_num = index & 0b11;
+        bool is_high = (index & 0b100) != 0;
         return bytes[2 * reg_num + (is_high ? 1 : 0)];
     }
 
@@ -50,10 +48,9 @@ public:
                                                          "sp", "bp", "si", "di"};
 
         for (size_t i = 0; i < regs.size(); i++) {
-            ss << std::left << std::setw(2) << reg_names[i] << ": 0x"
-               << std::right // Switch to right alignment for the hex value
-               << std::hex << std::uppercase << std::setfill('0') << std::setw(4)
-               << static_cast<u16>(regs[i]) << '\n';
+            ss << std::left << std::setw(2) << reg_names[i] << ": 0x" << std::right << std::hex
+               << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<u16>(regs[i])
+               << '\n';
         }
 
         return ss.str();

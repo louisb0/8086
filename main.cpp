@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
         sim::print::instruction(inst);
 
         if (inst.mnemonic == "mov") {
-            regfile.write(inst.dst.reg_access, inst.src.imm);
+            regfile.write(inst.dst.reg_access, inst.src.immediate);
             continue;
         }
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
             src = regfile.read(inst.src.reg_access);
             break;
         case sim::instructions::Operand::Type::IMMEDIATE:
-            src = inst.src.imm;
+            src = inst.src.immediate;
             break;
         default:
             UNREACHABLE();

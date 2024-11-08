@@ -57,7 +57,7 @@ namespace {
         case instructions::Operand::Type::MEMORY:
             return format_memory(op.mem_access);
         case instructions::Operand::Type::IMMEDIATE:
-            return format_immediate(op.imm);
+            return format_immediate(op.immediate);
         default:
             return "???";
         }
