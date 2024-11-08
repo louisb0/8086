@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <vector>
 
 namespace sim::print {
 
@@ -87,10 +86,8 @@ namespace {
     }
 } // namespace
 
-void instructions(const std::vector<instructions::Instruction> &instructions) noexcept {
-    for (const auto &inst : instructions) {
-        std::cout << format_instruction(inst) << '\n';
-    }
+void instruction(const instructions::Instruction &inst) noexcept {
+    std::cout << format_instruction(inst) << '\n';
 }
 
 } // namespace sim::print

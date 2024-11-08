@@ -22,7 +22,7 @@ namespace {
 // clang-format off
 const std::vector<Encoding> instruction_encodings = {
     // NOTE(louis): see line ~90 of decoder.cpp on duplicate entries around imm to r/m arithmetic
-    //
+
     {"mov",    MASK(0xFC), EQUALS(0b10001000), D(0x02), NONE,    W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::RM_WITH_REG},
     {"mov",    MASK(0xFE), EQUALS(0b11000110), NONE,    NONE,    W(0x01), MOD(0xC0), NONE,      RM(0x07), Encoding::IMM_TO_RM},
     {"mov",    MASK(0xF0), EQUALS(0b10110000), NONE,    NONE,    W(0x08), NONE,      REG(0x07), NONE,     Encoding::IMM_TO_REG},

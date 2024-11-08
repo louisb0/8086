@@ -3,10 +3,11 @@
 #include "decode.hpp"
 #include "print.hpp"
 #include "register_file.hpp"
-#include "table.hpp"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <vector>
 
 int main(int argc, char *argv[]) {
@@ -21,25 +22,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    sim::decode::Decoder decoder(file);
+    std::vector<u8> memory;
+    memory.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
-    std::vector<sim::instructions::Instruction> instructions;
-    while (file && !file.eof()) {
-        u8 first_byte = file.get();
-
-        // NOTE(louis): inefficient. precompute a jump table or something
-        for (const auto &encoding : sim::decode::table::instruction_encodings) {
-            if (auto inst = decoder.try_decode(encoding, first_byte)) {
-                instructions.push_back(inst.value());
-                break;
-            }
-        }
-    }
-
-    sim::print::instructions(instructions);
-
+    sim::decode::Decoder decoder;
     sim::simulator::RegisterFile regfile;
-    for (const auto &inst : instructions) {
+
+    size_t pc = 0;
+    while (pc < memory.size()) {
+        auto inst_optional = decoder.try_decode(memory, pc);
+        if (!inst_optional) {
+            // TODO(louis): something error handling
+            break;
+        }
+
+        const auto &inst = *inst_optional;
+        pc += inst.bytes.size();
+
+        sim::print::instruction(inst);
+
         if (inst.mnemonic == "mov") {
             regfile.write(inst.dst.reg_access, inst.src.imm);
             continue;
@@ -78,8 +79,8 @@ int main(int argc, char *argv[]) {
             regfile.flags.SF = (res & 0x80) != 0;
         }
 
-        std::cout << "\nSF: " << static_cast<int>(regfile.flags.SF)
-                  << ", ZF: " << static_cast<int>(regfile.flags.ZF);
+        std::cout << "SF: " << static_cast<int>(regfile.flags.SF)
+                  << ", ZF: " << static_cast<int>(regfile.flags.ZF) << "\n";
     }
 
     std::cout << std::endl << regfile.string();

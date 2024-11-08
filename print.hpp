@@ -2,10 +2,8 @@
 
 #include "instructions.hpp"
 
-#include <vector>
-
 namespace sim::print {
 
-void instructions(const std::vector<instructions::Instruction> &instructions) noexcept;
+void instruction(const instructions::Instruction &inst) noexcept;
 
 } // namespace sim::print

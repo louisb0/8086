@@ -2,6 +2,7 @@
 
 #include "decode.hpp"
 #include "instructions.hpp"
+#include "memory.hpp"
 #include "table.hpp"
 
 #include <array>
@@ -22,67 +23,68 @@ namespace {
     }};
 }
 
-std::optional<instructions::Instruction> Decoder::try_decode(const table::Encoding &encoding,
-                                                             u8 byte) noexcept {
-    if ((byte & encoding.mask) != encoding.equals) {
-        return std::nullopt;
+std::optional<instructions::Instruction> Decoder::try_decode(const std::vector<u8> &memory,
+                                                             u8 address) noexcept {
+    sim::mem::MemoryReader reader(memory, address);
+    u8 byte = reader.byte();
+
+    for (const auto &encoding : table::instruction_encodings) {
+        if ((byte & encoding.mask) != encoding.equals) {
+            continue;
+        }
+
+        instructions::Instruction instruction;
+        switch (encoding.type) {
+        case table::Encoding::Type::RM_WITH_REG:
+            instruction = rm_with_reg(reader, encoding, byte);
+            break;
+        case table::Encoding::Type::IMM_TO_RM:
+            instruction = imm_to_rm(reader, encoding, byte);
+            break;
+        case table::Encoding::Type::IMM_TO_REG:
+            instruction = imm_to_reg(reader, encoding, byte);
+            break;
+        case table::Encoding::Type::IMM_TO_ACC:
+            instruction = imm_to_acc(reader, encoding, byte);
+            break;
+        case table::Encoding::Type::JUMP:
+            instruction = jump(reader, encoding);
+            break;
+        }
+
+        return instruction;
     }
 
-    // TODO(louis): this is hacky. we need this for the very first byte read *externally*.
-    // this is because do not own the input stream (we should). it is owned by the callee.
-    // this should be fixed by creating a memory abstraction, not using a file.
-    bytes.push_back(byte);
-
-    instructions::Instruction instruction;
-
-    switch (encoding.type) {
-    case table::Encoding::Type::RM_WITH_REG:
-        instruction = rm_with_reg(encoding, byte);
-        break;
-    case table::Encoding::Type::IMM_TO_RM:
-        instruction = imm_to_rm(encoding, byte);
-        break;
-    case table::Encoding::Type::IMM_TO_REG:
-        instruction = imm_to_reg(encoding, byte);
-        break;
-    case table::Encoding::Type::IMM_TO_ACC:
-        instruction = imm_to_acc(encoding, byte);
-        break;
-    case table::Encoding::Type::JUMP:
-        instruction = jump(encoding);
-        break;
-    }
-
-    current_address += instruction.bytes.size();
-    bytes.clear();
-
-    return instruction;
+    return std::nullopt;
 }
 
-instructions::Instruction Decoder::rm_with_reg(const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = InstructionFields::from(encoding, first, read_byte());
+instructions::Instruction Decoder::rm_with_reg(sim::mem::MemoryReader &reader,
+                                               const table::Encoding &encoding, u8 first) noexcept {
+    auto fields = instructions::InstructionFields::from(encoding, first, reader.byte());
 
     instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
-    instructions::Operand rm = decode_rm(fields.is_wide, fields.mod, fields.rm);
+    instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
         .dst = fields.is_reg_dst ? reg : rm,
         .src = fields.is_reg_dst ? rm : reg,
-        .address = current_address,
-        .bytes = bytes,
+        .address = reader.get_start_address(),
+        .bytes = reader.get_bytes_read(),
     };
 }
-instructions::Instruction Decoder::imm_to_rm(const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = InstructionFields::from(encoding, first, read_byte());
 
-    instructions::Operand rm = decode_rm(fields.is_wide, fields.mod, fields.rm);
+instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
+                                             const table::Encoding &encoding, u8 first) noexcept {
+    auto fields = instructions::InstructionFields::from(encoding, first, reader.byte());
+
+    instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
     u16 imm;
     if (fields.is_wide && (encoding.mnemonic == "mov" || !fields.is_sign_extended)) {
-        imm = read_word();
+        imm = reader.word();
     } else {
-        imm = read_byte();
+        imm = reader.byte();
         if (fields.is_sign_extended && (imm & 0x80)) {
             imm |= 0xFF00;
         }
@@ -108,63 +110,65 @@ instructions::Instruction Decoder::imm_to_rm(const table::Encoding &encoding, u8
         .mnemonic = mnemonic,
         .dst = rm,
         .src = instructions::Operand::from_immediate(imm),
-        .address = current_address,
-        .bytes = bytes,
+        .address = reader.get_start_address(),
+        .bytes = reader.get_bytes_read(),
     };
 }
 
-// NOTE(louis): mov only
-instructions::Instruction Decoder::imm_to_reg(const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = InstructionFields::from(encoding, first);
+instructions::Instruction Decoder::imm_to_reg(sim::mem::MemoryReader &reader,
+                                              const table::Encoding &encoding, u8 first) noexcept {
+    auto fields = instructions::InstructionFields::from(encoding, first);
 
     instructions::Operand reg = instructions::Operand::from_register(fields.reg, fields.is_wide);
     instructions::Operand imm =
-        instructions::Operand::from_immediate(fields.is_wide ? read_word() : read_byte());
+        instructions::Operand::from_immediate(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
         .dst = reg,
         .src = imm,
-        .address = current_address,
-        .bytes = bytes,
+        .address = reader.get_start_address(),
+        .bytes = reader.get_bytes_read(),
     };
 }
 
-instructions::Instruction Decoder::imm_to_acc(const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = InstructionFields::from(encoding, first);
+instructions::Instruction Decoder::imm_to_acc(sim::mem::MemoryReader &reader,
+                                              const table::Encoding &encoding, u8 first) noexcept {
+    auto fields = instructions::InstructionFields::from(encoding, first);
 
     instructions::Operand reg = instructions::Operand::from_register(0b000, fields.is_wide);
     instructions::Operand imm =
-        instructions::Operand::from_immediate(fields.is_wide ? read_word() : read_byte());
+        instructions::Operand::from_immediate(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
         .dst = reg,
         .src = imm,
-        .address = current_address,
-        .bytes = bytes,
+        .address = reader.get_start_address(),
+        .bytes = reader.get_bytes_read(),
     };
 }
-
-instructions::Instruction Decoder::jump(const table::Encoding &encoding) noexcept {
-    instructions::Operand imm = instructions::Operand::from_immediate(read_byte());
+instructions::Instruction Decoder::jump(sim::mem::MemoryReader &reader,
+                                        const table::Encoding &encoding) noexcept {
+    instructions::Operand imm = instructions::Operand::from_immediate(reader.byte());
 
     return instructions::Instruction{
         .mnemonic = std::string(encoding.mnemonic),
         .dst = imm,
         .src = instructions::Operand::none(),
-        .address = current_address,
-        .bytes = bytes,
+        .address = reader.get_start_address(),
+        .bytes = reader.get_bytes_read(),
     };
 }
 
-instructions::Operand Decoder::decode_rm(bool is_wide, u8 mod, u8 rm) noexcept {
+instructions::Operand Decoder::decode_rm(sim::mem::MemoryReader &reader, bool is_wide, u8 mod,
+                                         u8 rm) noexcept {
     using instructions::Operand;
 
     switch (mod) {
     case 0b00: {
         if (rm == 0b110) {
-            return Operand::direct_address(read_word(), is_wide);
+            return Operand::direct_address(reader.word(), is_wide);
         }
 
         auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
@@ -173,12 +177,12 @@ instructions::Operand Decoder::decode_rm(bool is_wide, u8 mod, u8 rm) noexcept {
 
     case 0b01: {
         auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
-        return Operand::effective_address(reg1, reg2, read_byte(), is_wide);
+        return Operand::effective_address(reg1, reg2, reader.byte(), is_wide);
     }
 
     case 0b10: {
         auto [reg1, reg2] = EFFECTIVE_ADDRESSES[rm];
-        return Operand::effective_address(reg1, reg2, read_word(), is_wide);
+        return Operand::effective_address(reg1, reg2, reader.word(), is_wide);
     }
 
     case 0b11:
