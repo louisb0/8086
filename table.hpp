@@ -2,7 +2,8 @@
 
 #include "common.hpp"
 
-#include <string_view>
+#include "instructions.hpp"
+
 #include <vector>
 
 namespace sim::decode::table {
@@ -25,7 +26,7 @@ struct BitField {
 };
 
 struct Encoding {
-    std::string_view mnemonic;
+    instructions::Mnemonic mnemonic;
 
     // NOTE(louis): Replace with models::BitField?
     u8 mask;

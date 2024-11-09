@@ -4,12 +4,41 @@
 
 #include "memory.hpp"
 #include "registers.hpp"
-#include "table.hpp"
 
-#include <string>
 #include <vector>
 
 namespace sim::instructions {
+
+static constexpr std::array<std::string_view, 24> MNEMONIC_NAMES = {
+    "mov", "add", "sub", "cmp", "je", "jl",  "jle", "jb",  "jbe",  "jp",    "jo",     "js",
+    "jne", "jnl", "jg",  "jnb", "ja", "jnp", "jno", "jns", "loop", "loopz", "loopnz", "jcxz"};
+
+enum Mnemonic : u8 {
+    MOV,
+    ADD,
+    SUB,
+    CMP,
+    JE,
+    JL,
+    JLE,
+    JB,
+    JBE,
+    JP,
+    JO,
+    JS,
+    JNE,
+    JNL,
+    JG,
+    JNB,
+    JA,
+    JNP,
+    JNO,
+    JNS,
+    LOOP,
+    LOOPZ,
+    LOOPNZ,
+    JCXZ
+};
 
 struct Operand {
     enum class Type { REGISTER, MEMORY, IMMEDIATE, NONE } type;
@@ -71,46 +100,12 @@ struct Operand {
     }
 };
 
-// TODO(louis): don't use string for this
 struct Instruction {
-    std::string mnemonic;
+    Mnemonic mnemonic;
     Operand dst;
     Operand src;
     size_t address;
     std::vector<u8> bytes;
-};
-
-// TODO(louis): a more elegant way of doing this? repetitve and gross
-struct InstructionFields {
-    bool is_reg_dst;
-    bool is_wide;
-    bool is_sign_extended;
-    u8 mod;
-    u8 reg;
-    u8 rm;
-
-    static InstructionFields from(const decode::table::Encoding &encoding, u8 first) noexcept {
-        return {
-            .is_reg_dst = static_cast<bool>(encoding.d.read(first)),
-            .is_wide = static_cast<bool>(encoding.w.read(first)),
-            .is_sign_extended = static_cast<bool>(encoding.s.read(first)),
-            .mod = encoding.mod.read(first),
-            .reg = encoding.reg.read(first),
-            .rm = encoding.rm.read(first),
-        };
-    }
-
-    static InstructionFields from(const decode::table::Encoding &encoding, u8 first,
-                                  u8 second) noexcept {
-        return {
-            .is_reg_dst = static_cast<bool>(encoding.d.read(first)),
-            .is_wide = static_cast<bool>(encoding.w.read(first)),
-            .is_sign_extended = static_cast<bool>(encoding.s.read(first)),
-            .mod = encoding.mod.read(second),
-            .reg = encoding.reg.read(second),
-            .rm = encoding.rm.read(second),
-        };
-    }
 };
 
 } // namespace sim::instructions

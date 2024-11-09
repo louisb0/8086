@@ -60,13 +60,13 @@ std::optional<instructions::Instruction> Decoder::try_decode(const std::vector<u
 
 instructions::Instruction Decoder::rm_with_reg(sim::mem::MemoryReader &reader,
                                                const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = instructions::InstructionFields::from(encoding, first, reader.byte());
+    auto fields = InstructionFields::from(encoding, first, reader.byte());
 
     instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
     instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
     return instructions::Instruction{
-        .mnemonic = std::string(encoding.mnemonic),
+        .mnemonic = encoding.mnemonic,
         .dst = fields.is_reg_dst ? reg : rm,
         .src = fields.is_reg_dst ? rm : reg,
         .address = reader.get_start_address(),
@@ -76,12 +76,13 @@ instructions::Instruction Decoder::rm_with_reg(sim::mem::MemoryReader &reader,
 
 instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
                                              const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = instructions::InstructionFields::from(encoding, first, reader.byte());
+    auto fields = InstructionFields::from(encoding, first, reader.byte());
 
     instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
     u16 imm;
-    if (fields.is_wide && (encoding.mnemonic == "mov" || !fields.is_sign_extended)) {
+    if (fields.is_wide &&
+        (encoding.mnemonic == instructions::Mnemonic::MOV || !fields.is_sign_extended)) {
         imm = reader.word();
     } else {
         imm = reader.byte();
@@ -93,16 +94,16 @@ instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
     // TODO(louis): this is bad, many identical entries in the table for different encodings.
     // maybe we could abstract mask/equals into like a comparison object and we can have 1or2
     // comparisons to be true before an encoding matches
-    std::string mnemonic;
+    instructions::Mnemonic mnemonic;
     switch (fields.reg) {
     case 0b000:
-        mnemonic = "add";
+        mnemonic = instructions::Mnemonic::MOV;
         break;
     case 0b101:
-        mnemonic = "sub";
+        mnemonic = instructions::Mnemonic::SUB;
         break;
     case 0b111:
-        mnemonic = "cmp";
+        mnemonic = instructions::Mnemonic::CMP;
         break;
     }
 
@@ -117,14 +118,14 @@ instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
 
 instructions::Instruction Decoder::imm_to_reg(sim::mem::MemoryReader &reader,
                                               const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = instructions::InstructionFields::from(encoding, first);
+    auto fields = InstructionFields::from(encoding, first);
 
     instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
     instructions::Operand imm =
         instructions::Operand::imm(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
-        .mnemonic = std::string(encoding.mnemonic),
+        .mnemonic = encoding.mnemonic,
         .dst = reg,
         .src = imm,
         .address = reader.get_start_address(),
@@ -134,14 +135,14 @@ instructions::Instruction Decoder::imm_to_reg(sim::mem::MemoryReader &reader,
 
 instructions::Instruction Decoder::imm_to_acc(sim::mem::MemoryReader &reader,
                                               const table::Encoding &encoding, u8 first) noexcept {
-    auto fields = instructions::InstructionFields::from(encoding, first);
+    auto fields = InstructionFields::from(encoding, first);
 
     instructions::Operand reg = instructions::Operand::reg(0b000, fields.is_wide);
     instructions::Operand imm =
         instructions::Operand::imm(fields.is_wide ? reader.word() : reader.byte());
 
     return instructions::Instruction{
-        .mnemonic = std::string(encoding.mnemonic),
+        .mnemonic = encoding.mnemonic,
         .dst = reg,
         .src = imm,
         .address = reader.get_start_address(),
@@ -153,7 +154,7 @@ instructions::Instruction Decoder::jump(sim::mem::MemoryReader &reader,
     instructions::Operand imm = instructions::Operand::imm(reader.byte());
 
     return instructions::Instruction{
-        .mnemonic = std::string(encoding.mnemonic),
+        .mnemonic = encoding.mnemonic,
         .dst = imm,
         .src = instructions::Operand::none(),
         .address = reader.get_start_address(),

@@ -78,7 +78,7 @@ namespace {
             ss << "   ";
         }
 
-        ss << inst.mnemonic << " " << format_operand(inst.dst);
+        ss << instructions::MNEMONIC_NAMES[inst.mnemonic] << " " << format_operand(inst.dst);
 
         if (inst.src.type != instructions::Operand::Type::NONE) {
             ss << ", " << format_operand(inst.src);
