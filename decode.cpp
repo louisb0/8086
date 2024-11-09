@@ -38,13 +38,13 @@ std::optional<instructions::Instruction> Decoder::try_decode(const std::vector<u
         case table::Encoding::Type::RM_WITH_REG:
             instruction = rm_with_reg(reader, encoding, byte);
             break;
-        case table::Encoding::Type::IMM_TO_RM:
+        case table::Encoding::Type::IMM_WITH_RM:
             instruction = imm_to_rm(reader, encoding, byte);
             break;
         case table::Encoding::Type::IMM_TO_REG:
             instruction = imm_to_reg(reader, encoding, byte);
             break;
-        case table::Encoding::Type::IMM_TO_ACC:
+        case table::Encoding::Type::IMM_WITH_ACC:
             instruction = imm_to_acc(reader, encoding, byte);
             break;
         case table::Encoding::Type::JUMP:
@@ -91,24 +91,8 @@ instructions::Instruction Decoder::imm_to_rm(sim::mem::MemoryReader &reader,
         }
     }
 
-    // TODO(louis): this is bad, many identical entries in the table for different encodings.
-    // maybe we could abstract mask/equals into like a comparison object and we can have 1or2
-    // comparisons to be true before an encoding matches
-    instructions::Mnemonic mnemonic;
-    switch (fields.reg) {
-    case 0b000:
-        mnemonic = instructions::Mnemonic::MOV;
-        break;
-    case 0b101:
-        mnemonic = instructions::Mnemonic::SUB;
-        break;
-    case 0b111:
-        mnemonic = instructions::Mnemonic::CMP;
-        break;
-    }
-
     return instructions::Instruction{
-        .mnemonic = mnemonic,
+        .mnemonic = table::Encoding::mnemonic_from_reg(fields.reg),
         .dst = rm,
         .src = instructions::Operand::imm(imm),
         .address = reader.get_start_address(),

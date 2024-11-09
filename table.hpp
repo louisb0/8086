@@ -28,7 +28,6 @@ struct BitField {
 struct Encoding {
     instructions::Mnemonic mnemonic;
 
-    // NOTE(louis): Replace with models::BitField?
     u8 mask;
     u8 equals;
 
@@ -41,11 +40,27 @@ struct Encoding {
 
     enum Type {
         RM_WITH_REG,
-        IMM_TO_RM,
-        IMM_TO_ACC,
+        IMM_WITH_RM,
+        IMM_WITH_ACC,
         IMM_TO_REG,
         JUMP,
     } type;
+
+    // TODO(louis): this is bad, many identical entries in the table for different encodings.
+    // maybe we could abstract mask/equals into like a comparison object and we can have 1or2
+    // comparisons to be true before an encoding matches
+    static instructions::Mnemonic mnemonic_from_reg(u8 reg) {
+        switch (reg) {
+        case 0b000:
+            return instructions::Mnemonic::MOV;
+        case 0b101:
+            return instructions::Mnemonic::SUB;
+        case 0b111:
+            return instructions::Mnemonic::CMP;
+        default:
+            UNREACHABLE();
+        }
+    };
 };
 
 extern const std::vector<Encoding> instruction_encodings;

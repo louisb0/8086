@@ -22,23 +22,23 @@ namespace {
 
 // clang-format off
 const std::vector<Encoding> instruction_encodings = {
-    // NOTE(louis): see line ~90 of decoder.cpp on duplicate entries around imm to r/m arithmetic
+    // NOTE(louis): see line ~50 of table.hpp on duplicate entries around imm to r/m arithmetic
 
     {instructions::Mnemonic::MOV,    MASK(0xFC), EQUALS(0b10001000), D(0x02), NONE,    W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::RM_WITH_REG},
-    {instructions::Mnemonic::MOV,    MASK(0xFE), EQUALS(0b11000110), NONE,    NONE,    W(0x01), MOD(0xC0), NONE,      RM(0x07), Encoding::IMM_TO_RM},
+    {instructions::Mnemonic::MOV,    MASK(0xFE), EQUALS(0b11000110), NONE,    NONE,    W(0x01), MOD(0xC0), NONE,      RM(0x07), Encoding::IMM_WITH_RM},
     {instructions::Mnemonic::MOV,    MASK(0xF0), EQUALS(0b10110000), NONE,    NONE,    W(0x08), NONE,      REG(0x07), NONE,     Encoding::IMM_TO_REG},
 
     {instructions::Mnemonic::ADD,    MASK(0xFC), EQUALS(0b00000000), D(0x02), NONE,    W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::RM_WITH_REG},
-    {instructions::Mnemonic::ADD,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_TO_RM},
-    {instructions::Mnemonic::ADD,    MASK(0xFE), EQUALS(0b00000100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_TO_ACC},
+    {instructions::Mnemonic::ADD,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_WITH_RM},
+    {instructions::Mnemonic::ADD,    MASK(0xFE), EQUALS(0b00000100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_WITH_ACC},
 
     {instructions::Mnemonic::SUB,    MASK(0xFC), EQUALS(0b00101000), D(0x02), NONE,    W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::RM_WITH_REG},
-    {instructions::Mnemonic::SUB,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_TO_RM},
-    {instructions::Mnemonic::SUB,    MASK(0xFE), EQUALS(0b00101100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_TO_ACC},
+    {instructions::Mnemonic::SUB,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_WITH_RM},
+    {instructions::Mnemonic::SUB,    MASK(0xFE), EQUALS(0b00101100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_WITH_ACC},
 
     {instructions::Mnemonic::CMP,    MASK(0xFC), EQUALS(0b00111000), D(0x02), NONE,    W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::RM_WITH_REG},
-    {instructions::Mnemonic::CMP,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_TO_RM},
-    {instructions::Mnemonic::CMP,    MASK(0xFE), EQUALS(0b00111100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_TO_ACC},
+    {instructions::Mnemonic::CMP,    MASK(0xFC), EQUALS(0b10000000), NONE,    S(0x02), W(0x01), MOD(0xC0), REG(0x38), RM(0x07), Encoding::IMM_WITH_RM},
+    {instructions::Mnemonic::CMP,    MASK(0xFE), EQUALS(0b00111100), NONE,    NONE,    W(0x01), NONE,      NONE,      NONE,     Encoding::IMM_WITH_ACC},
 
     {instructions::Mnemonic::JE,     MASK(0xFF), EQUALS(0x74),       NONE,    NONE,    NONE,    NONE,      NONE,      NONE,     Encoding::JUMP},
     {instructions::Mnemonic::JL,     MASK(0xFF), EQUALS(0x7C),       NONE,    NONE,    NONE,    NONE,      NONE,      NONE,     Encoding::JUMP},
