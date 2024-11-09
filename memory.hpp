@@ -2,9 +2,17 @@
 
 #include "common.hpp"
 
+#include "registers.hpp"
+
 #include <vector>
 
 namespace sim::mem {
+
+struct MemoryAccess {
+    registers::RegAccess terms[2];
+    u16 displacement;
+    bool is_wide;
+};
 
 class MemoryReader {
 public:

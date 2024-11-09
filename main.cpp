@@ -2,7 +2,7 @@
 
 #include "decode.hpp"
 #include "print.hpp"
-#include "register_file.hpp"
+#include "registers.hpp"
 
 #include <cassert>
 #include <fstream>
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     memory.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
     sim::decode::Decoder decoder;
-    sim::simulator::RegisterFile regfile;
+    sim::registers::RegFile regfile;
 
     size_t pc = 0;
     while (pc < memory.size()) {
@@ -70,17 +70,14 @@ int main(int argc, char *argv[]) {
             res = dst - src;
         }
 
-        if (inst.dst.reg_access.is_wide) {
-            regfile.flags.ZF = (res == 0);
-            regfile.flags.SF = (res & 0x8000) != 0;
-        } else {
+        if (!inst.dst.reg_access.is_wide)
             res &= 0xFF;
-            regfile.flags.ZF = (res == 0);
-            regfile.flags.SF = (res & 0x80) != 0;
-        }
 
-        std::cout << "SF: " << static_cast<int>(regfile.flags.SF)
-                  << ", ZF: " << static_cast<int>(regfile.flags.ZF) << "\n";
+        regfile.set_flag(sim::registers::ZF, res == 0);
+        regfile.set_flag(sim::registers::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
+
+        std::cout << "SF: " << static_cast<int>(regfile.test_flag(sim::registers::SF))
+                  << ", ZF: " << static_cast<int>(regfile.test_flag(sim::registers::ZF)) << "\n";
     }
 
     std::cout << std::endl << regfile.string();

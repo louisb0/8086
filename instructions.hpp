@@ -2,6 +2,8 @@
 
 #include "common.hpp"
 
+#include "memory.hpp"
+#include "registers.hpp"
 #include "table.hpp"
 
 #include <string>
@@ -9,33 +11,12 @@
 
 namespace sim::instructions {
 
-// TODO(louis): temporary. doesn't capture the actual way registers
-// work, is incomplete, and is a weird way of doing things
-namespace registers {
-    static constexpr u8 BX = 3;
-    static constexpr u8 BP = 5;
-    static constexpr u8 SI = 6;
-    static constexpr u8 DI = 7;
-    static constexpr u8 NONE = 0xFF;
-} // namespace registers
-
-struct RegisterAccess {
-    u8 index;
-    bool is_wide;
-};
-
-struct MemoryAccess {
-    RegisterAccess terms[2];
-    u16 displacement;
-    bool is_wide;
-};
-
 struct Operand {
     enum class Type { REGISTER, MEMORY, IMMEDIATE, NONE } type;
 
     union {
-        RegisterAccess reg_access;
-        MemoryAccess mem_access;
+        registers::RegAccess reg_access;
+        mem::MemoryAccess mem_access;
         u16 immediate;
     };
 

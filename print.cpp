@@ -1,7 +1,9 @@
 #include "common.hpp"
 
 #include "instructions.hpp"
+#include "memory.hpp"
 #include "print.hpp"
+#include "registers.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -13,7 +15,7 @@ namespace {
     static const char *WORD_REGISTERS[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
     static const char *BYTE_REGISTERS[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
-    std::string format_register(const instructions::RegisterAccess &reg) noexcept {
+    std::string format_register(const registers::RegAccess &reg) noexcept {
         return reg.is_wide ? WORD_REGISTERS[reg.index] : BYTE_REGISTERS[reg.index];
     }
 
@@ -23,13 +25,13 @@ namespace {
         return ss.str();
     }
 
-    std::string format_memory(const instructions::MemoryAccess &mem) noexcept {
+    std::string format_memory(const mem::MemoryAccess &mem) noexcept {
         std::stringstream ss;
         ss << "[";
 
         bool needs_plus = false;
-        for (const instructions::RegisterAccess term : mem.terms) {
-            if (term.index == instructions::registers::NONE)
+        for (const registers::RegAccess term : mem.terms) {
+            if (term.index == registers::NONE)
                 continue;
 
             if (needs_plus)

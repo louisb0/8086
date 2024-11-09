@@ -12,14 +12,14 @@
 namespace sim::decode {
 namespace {
     static constexpr std::array<std::pair<u8, u8>, 8> EFFECTIVE_ADDRESSES = {{
-        {instructions::registers::BX, instructions::registers::SI},
-        {instructions::registers::BX, instructions::registers::DI},
-        {instructions::registers::BP, instructions::registers::SI},
-        {instructions::registers::BP, instructions::registers::DI},
-        {instructions::registers::SI, instructions::registers::NONE},
-        {instructions::registers::DI, instructions::registers::NONE},
-        {instructions::registers::BP, instructions::registers::NONE},
-        {instructions::registers::BX, instructions::registers::NONE},
+        {registers::BX, registers::SI},
+        {registers::BX, registers::DI},
+        {registers::BP, registers::SI},
+        {registers::BP, registers::DI},
+        {registers::SI, registers::NONE},
+        {registers::DI, registers::NONE},
+        {registers::BP, registers::NONE},
+        {registers::BX, registers::NONE},
     }};
 }
 
