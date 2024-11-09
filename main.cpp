@@ -64,27 +64,25 @@ int main(int argc, char *argv[]) {
         if (inst.mnemonic == sim::instructions::Mnemonic::ADD) {
             res = dst + src;
             regfile.write(inst.dst.reg_access, res);
-            if (inst.mnemonic == sim::instructions::Mnemonic::SUB) {
-                res = dst - src;
-                regfile.write(inst.dst.reg_access, res);
-                if (inst.mnemonic == sim::instructions::Mnemonic::SUB) {
-                    res = dst - src;
-                }
-
-                if (!inst.dst.reg_access.is_wide)
-                    res &= 0xFF;
-
-                regfile.set_flag(sim::registers::ZF, res == 0);
-                regfile.set_flag(sim::registers::SF,
-                                 res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
-
-                std::cout << "SF: " << static_cast<int>(regfile.test_flag(sim::registers::SF))
-                          << ", ZF: " << static_cast<int>(regfile.test_flag(sim::registers::ZF))
-                          << "\n";
-            }
-
-            std::cout << std::endl << regfile.string();
-            return 0;
+        } else if (inst.mnemonic == sim::instructions::Mnemonic::SUB) {
+            res = dst - src;
+            regfile.write(inst.dst.reg_access, res);
+        } else if (inst.mnemonic == sim::instructions::Mnemonic::CMP) {
+            res = dst - src;
+        } else {
+            UNREACHABLE();
         }
+
+        if (!inst.dst.reg_access.is_wide)
+            res &= 0xFF;
+
+        regfile.set_flag(sim::registers::ZF, res == 0);
+        regfile.set_flag(sim::registers::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
+
+        std::cout << "SF: " << static_cast<int>(regfile.test_flag(sim::registers::SF))
+                  << ", ZF: " << static_cast<int>(regfile.test_flag(sim::registers::ZF)) << "\n";
     }
+
+    std::cout << std::endl << regfile.string();
+    return 0;
 }

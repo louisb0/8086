@@ -52,7 +52,7 @@ struct Encoding {
     static instructions::Mnemonic mnemonic_from_reg(u8 reg) {
         switch (reg) {
         case 0b000:
-            return instructions::Mnemonic::MOV;
+            return instructions::Mnemonic::ADD;
         case 0b101:
             return instructions::Mnemonic::SUB;
         case 0b111:
