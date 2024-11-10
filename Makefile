@@ -3,8 +3,8 @@ CXXFLAGS = -Wall -Wextra
 TARGET = 8086
 BUILD_DIR = build
 
-SOURCES = $(wildcard *.cpp)
-OBJECTS = $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
+SOURCES = $(wildcard src/*.cpp)
+OBJECTS = $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 
 $(TARGET): $(BUILD_DIR) $(OBJECTS)
 	$(CXX) $(OBJECTS) -o $(TARGET)
@@ -12,7 +12,7 @@ $(TARGET): $(BUILD_DIR) $(OBJECTS)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_DIR)/%.o: %.cpp
+$(BUILD_DIR)/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
