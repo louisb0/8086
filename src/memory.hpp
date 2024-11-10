@@ -14,6 +14,10 @@ struct MemoryAccess {
     bool is_wide;
 };
 
+// TODO(louis): not good, this stuff idk should be tracked like inside the
+// decoder but hte decoder is also stateless so ???? feels weird
+// then we also have like the actual memory interpretation logic in runner
+// so ???
 class MemoryReader {
 public:
     MemoryReader(const std::vector<u8> &memory, std::size_t address)

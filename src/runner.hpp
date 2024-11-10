@@ -22,6 +22,8 @@ public:
 
 private:
     const std::vector<u8> instruction_memory;
+    std::array<u8, 1 << 16> data_memory; // NOTE(louis): 16bit as no segment registers
+
     registers::RegFile regfile;
     u16 flags = 0;
     u16 ip = 0;
@@ -32,7 +34,8 @@ private:
     void jump(const instructions::Instruction &inst) noexcept;
     void arithmetic(const instructions::Instruction &inst) noexcept;
 
-    u16 read_source(const sim::instructions::Instruction &inst) noexcept;
+    u16 read_operand(const instructions::Operand &operand) noexcept;
+    void write_operand(const instructions::Operand &operand, u16 value) noexcept;
 
     bool test_flag(Flag f) const noexcept { return flags & f; }
     void set_flag(Flag f, bool value) noexcept {

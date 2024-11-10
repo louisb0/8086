@@ -24,8 +24,9 @@ void Runner::run() noexcept {
         print::instruction(inst);
         execute_instruction(inst);
 
-        std::cout << "IP: 0x" << std::hex << ip << ", SF: " << static_cast<int>(test_flag(Flag::SF))
-                  << ", ZF: " << static_cast<int>(test_flag(Flag::ZF)) << "\n";
+        // std::cout << "IP: 0x" << std::hex << ip << ", SF: " <<
+        // static_cast<int>(test_flag(Flag::SF))
+        //           << ", ZF: " << static_cast<int>(test_flag(Flag::ZF)) << "\n";
     }
 
     std::cout << regfile.string() << "\n";
@@ -52,17 +53,18 @@ void Runner::execute_instruction(const instructions::Instruction &inst) noexcept
     }
 }
 
+// TODO(louis): not very elegant having to deal with immediate separately
 void Runner::mov(const instructions::Instruction &inst) noexcept {
     switch (inst.src.type) {
-    case instructions::Operand::Type::IMMEDIATE: {
-        regfile.write(inst.dst.reg_access, inst.src.immediate);
+    case instructions::Operand::Type::IMMEDIATE:
+        write_operand(inst.dst, inst.src.immediate);
         break;
-    }
-    case instructions::Operand::Type::REGISTER: {
-        u16 src = regfile.read(inst.src.reg_access);
-        regfile.write(inst.dst.reg_access, src);
+
+    case instructions::Operand::Type::MEMORY:
+    case instructions::Operand::Type::REGISTER:
+        write_operand(inst.dst, read_operand(inst.src));
         break;
-    }
+
     default:
         UNREACHABLE();
     }
@@ -84,19 +86,19 @@ void Runner::jump(const instructions::Instruction &inst) noexcept {
 }
 
 void Runner::arithmetic(const instructions::Instruction &inst) noexcept {
-    u16 dst = regfile.read(inst.dst.reg_access);
-    u16 src = read_source(inst);
+    u16 dst = read_operand(inst.dst);
+    u16 src = read_operand(inst.src);
     u16 res;
 
     switch (inst.mnemonic) {
     case instructions::Mnemonic::ADD:
         res = dst + src;
-        regfile.write(inst.dst.reg_access, res);
+        write_operand(inst.dst, res);
         break;
 
     case instructions::Mnemonic::SUB:
         res = dst - src;
-        regfile.write(inst.dst.reg_access, res);
+        write_operand(inst.dst, res);
         break;
 
     case instructions::Mnemonic::CMP:
@@ -115,17 +117,65 @@ void Runner::arithmetic(const instructions::Instruction &inst) noexcept {
     set_flag(Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
 }
 
-u16 Runner::read_source(const instructions::Instruction &inst) noexcept {
-    switch (inst.src.type) {
+u16 Runner::read_operand(const instructions::Operand &operand) noexcept {
+    switch (operand.type) {
     case instructions::Operand::Type::REGISTER:
-        return regfile.read(inst.src.reg_access);
+        return regfile.read(operand.reg_access);
 
     case instructions::Operand::Type::IMMEDIATE:
-        return inst.src.immediate;
+        return operand.immediate;
+
+    case instructions::Operand::Type::MEMORY: {
+        u8 offset = operand.mem_access.displacement;
+
+        if (operand.mem_access.terms[0].index != registers::NONE)
+            offset += regfile.read(operand.mem_access.terms[0]);
+
+        if (operand.mem_access.terms[1].index != registers::NONE)
+            offset += regfile.read(operand.mem_access.terms[1]);
+
+        if (operand.mem_access.is_wide) {
+            u8 low = data_memory[offset];
+            u8 high = data_memory[offset + 1];
+
+            return (high << 8) | low;
+        } else {
+            return data_memory[offset];
+        }
+    }
 
     default:
         UNREACHABLE();
-    };
-};
+    }
+}
+
+void Runner::write_operand(const instructions::Operand &operand, u16 value) noexcept {
+    switch (operand.type) {
+    case instructions::Operand::Type::REGISTER:
+        return regfile.write(operand.reg_access, value);
+
+    case instructions::Operand::Type::MEMORY: {
+        u8 offset = operand.mem_access.displacement;
+
+        if (operand.mem_access.terms[0].index != registers::NONE)
+            offset += regfile.read(operand.mem_access.terms[0]);
+
+        if (operand.mem_access.terms[1].index != registers::NONE)
+            offset += regfile.read(operand.mem_access.terms[1]);
+
+        if (operand.mem_access.is_wide) {
+            data_memory[offset] = value & 0xFF;
+            data_memory[offset + 1] = (value >> 8);
+        } else {
+            data_memory[offset] = value & 0xFF;
+        }
+
+        break;
+    }
+
+    default:
+        UNREACHABLE();
+    }
+}
 
 } // namespace sim::runner
