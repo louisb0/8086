@@ -21,6 +21,7 @@ public:
     void run() noexcept;
 
 private:
+    // TODO(louis): combine - good use for memory abstraction.
     const std::vector<u8> instruction_memory;
     std::array<u8, 1 << 16> data_memory; // NOTE(louis): 16bit as no segment registers
 

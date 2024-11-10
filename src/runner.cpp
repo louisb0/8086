@@ -5,6 +5,7 @@
 #include "print.hpp"
 #include "runner.hpp"
 
+#include <fstream>
 #include <iostream>
 
 namespace sim::runner {
@@ -126,7 +127,7 @@ u16 Runner::read_operand(const instructions::Operand &operand) noexcept {
         return operand.immediate;
 
     case instructions::Operand::Type::MEMORY: {
-        u8 offset = operand.mem_access.displacement;
+        u16 offset = operand.mem_access.displacement;
 
         if (operand.mem_access.terms[0].index != registers::NONE)
             offset += regfile.read(operand.mem_access.terms[0]);
@@ -155,7 +156,7 @@ void Runner::write_operand(const instructions::Operand &operand, u16 value) noex
         return regfile.write(operand.reg_access, value);
 
     case instructions::Operand::Type::MEMORY: {
-        u8 offset = operand.mem_access.displacement;
+        u16 offset = operand.mem_access.displacement;
 
         if (operand.mem_access.terms[0].index != registers::NONE)
             offset += regfile.read(operand.mem_access.terms[0]);
