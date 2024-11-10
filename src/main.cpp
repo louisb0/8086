@@ -1,14 +1,10 @@
 #include "common.hpp"
 
-#include "decode.hpp"
-#include "instructions.hpp"
-#include "print.hpp"
-#include "registers.hpp"
+#include "runner.hpp"
 
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <vector>
 
 int main(int argc, char *argv[]) {
@@ -24,74 +20,11 @@ int main(int argc, char *argv[]) {
     }
 
     std::vector<u8> memory;
+
     memory.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
-    sim::registers::RegFile regfile;
+    sim::runner::Runner runner(std::move(memory));
+    runner.run();
 
-    size_t ip = 0;
-    while (ip < memory.size()) {
-        auto inst_optional = sim::decode::try_decode(memory, ip);
-        if (!inst_optional) {
-            // TODO(louis): something error handling
-            break;
-        }
-
-        const auto &inst = *inst_optional;
-        ip += inst.bytes.size();
-
-        sim::print::instruction(inst);
-
-        if (inst.mnemonic == sim::instructions::Mnemonic::MOV) {
-            regfile.write(inst.dst.reg_access, inst.src.immediate);
-            std::cout << "IP: 0x" << std::hex << ip << "\n";
-            continue;
-        }
-
-        if (inst.mnemonic == sim::instructions::Mnemonic::JNE) {
-            if (!regfile.test_flag(sim::registers::ZF)) {
-                ip += (int8_t)inst.dst.immediate;
-                continue;
-            }
-        }
-
-        u16 dst = regfile.read(inst.dst.reg_access);
-        u16 src;
-        switch (inst.src.type) {
-        case sim::instructions::Operand::Type::REGISTER:
-            src = regfile.read(inst.src.reg_access);
-            break;
-        case sim::instructions::Operand::Type::IMMEDIATE:
-            src = inst.src.immediate;
-            break;
-            // default:
-            // UNREACHABLE();
-        };
-
-        u16 res;
-        if (inst.mnemonic == sim::instructions::Mnemonic::ADD) {
-            res = dst + src;
-            regfile.write(inst.dst.reg_access, res);
-        } else if (inst.mnemonic == sim::instructions::Mnemonic::SUB) {
-            res = dst - src;
-            regfile.write(inst.dst.reg_access, res);
-        } else if (inst.mnemonic == sim::instructions::Mnemonic::CMP) {
-            res = dst - src;
-        }
-        // else {
-        //     UNREACHABLE();
-        // }
-
-        if (!inst.dst.reg_access.is_wide)
-            res &= 0xFF;
-
-        regfile.set_flag(sim::registers::ZF, res == 0);
-        regfile.set_flag(sim::registers::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
-
-        std::cout << "IP: 0x" << std::hex << ip
-                  << ", SF: " << static_cast<int>(regfile.test_flag(sim::registers::SF))
-                  << ", ZF: " << static_cast<int>(regfile.test_flag(sim::registers::ZF)) << "\n";
-    }
-
-    std::cout << std::endl << regfile.string();
     return 0;
 }

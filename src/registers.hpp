@@ -76,14 +76,6 @@ public:
         }
     }
 
-    bool test_flag(Flag f) const noexcept { return flags & f; }
-    void set_flag(Flag f, bool value) noexcept {
-        if (value)
-            flags |= f;
-        else
-            flags &= ~f;
-    }
-
     std::string string() const noexcept {
         std::stringstream ss;
         static constexpr std::string_view reg_names[] = {"ax", "cx", "dx", "bx",
