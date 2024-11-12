@@ -5,7 +5,6 @@
 #include "print.hpp"
 #include "runner.hpp"
 
-#include <fstream>
 #include <iostream>
 
 namespace sim::runner {
@@ -23,11 +22,10 @@ void Runner::run() noexcept {
         ip += inst.bytes.size();
 
         print::instruction(inst);
-        execute_instruction(inst);
 
-        // std::cout << "IP: 0x" << std::hex << ip << ", SF: " <<
-        // static_cast<int>(test_flag(Flag::SF))
-        //           << ", ZF: " << static_cast<int>(test_flag(Flag::ZF)) << "\n";
+        FlagState before = flags;
+        execute_instruction(inst);
+        std::cout << flags.fmt_change(before) << "\n";
     }
 
     std::cout << regfile.string() << "\n";
@@ -76,7 +74,7 @@ void Runner::jump(const instructions::Instruction &inst) noexcept {
     // on the immediate
     switch (inst.mnemonic) {
     case instructions::Mnemonic::JNE:
-        if (!test_flag(Flag::ZF)) {
+        if (!flags.test_flag(Flag::ZF)) {
             ip += static_cast<int8_t>(inst.dst.immediate);
         }
 
@@ -114,8 +112,8 @@ void Runner::arithmetic(const instructions::Instruction &inst) noexcept {
         res &= 0xFF;
     }
 
-    set_flag(Flag::ZF, res == 0);
-    set_flag(Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
+    flags.set_flag(Flag::ZF, res == 0);
+    flags.set_flag(Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
 }
 
 u16 Runner::read_operand(const instructions::Operand &operand) noexcept {
