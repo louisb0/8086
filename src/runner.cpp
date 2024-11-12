@@ -23,9 +23,9 @@ void Runner::run() noexcept {
 
         print::instruction(inst);
 
-        FlagState before = flags;
+        flags::FlagState before = flags;
         execute_instruction(inst);
-        std::cout << flags.fmt_change(before) << "\n";
+        std::cout << flags.change_string(before) << "\n";
     }
 
     std::cout << regfile.string() << "\n";
@@ -74,7 +74,7 @@ void Runner::jump(const instructions::Instruction &inst) noexcept {
     // on the immediate
     switch (inst.mnemonic) {
     case instructions::Mnemonic::JNE:
-        if (!flags.test_flag(Flag::ZF)) {
+        if (!flags.test_flag(flags::Flag::ZF)) {
             ip += static_cast<int8_t>(inst.dst.immediate);
         }
 
@@ -112,8 +112,8 @@ void Runner::arithmetic(const instructions::Instruction &inst) noexcept {
         res &= 0xFF;
     }
 
-    flags.set_flag(Flag::ZF, res == 0);
-    flags.set_flag(Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
+    flags.set_flag(flags::Flag::ZF, res == 0);
+    flags.set_flag(flags::Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
 }
 
 u16 Runner::read_operand(const instructions::Operand &operand) noexcept {
