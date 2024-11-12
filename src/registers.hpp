@@ -42,7 +42,7 @@ struct RegAccess {
     u8 index;
     bool is_wide;
 
-    [[nodiscard]] static std::string string(RegAccess access) noexcept {
+    [[nodiscard]] static std::string string(const RegAccess &access) noexcept {
         if (access.is_wide) {
             return std::string(REG_NAMES[access.index]);
         } else {
@@ -55,6 +55,7 @@ struct RegAccess {
 class RegFile {
 private:
     std::array<u16, 8> regs = {};
+
     [[nodiscard]] u8 &byte_ref(u8 index) noexcept;
 
 public:
@@ -62,6 +63,7 @@ public:
     void write(RegAccess access, u16 value) noexcept;
 
     [[nodiscard]] std::string string() const noexcept;
+    [[nodiscard]] std::string format_change(const RegFile &before) const noexcept;
 };
 
 } // namespace sim::registers

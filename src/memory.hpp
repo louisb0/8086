@@ -4,6 +4,7 @@
 
 #include "registers.hpp"
 
+#include <string>
 #include <vector>
 
 namespace sim::mem {
@@ -12,6 +13,32 @@ struct MemoryAccess {
     registers::RegAccess terms[2];
     u16 displacement;
     bool is_wide;
+
+    [[nodiscard]] static std::string string(const MemoryAccess &access) noexcept {
+        std::string result = "[";
+        bool needs_plus = false;
+
+        for (const auto &term : access.terms) {
+            if (term.index == registers::NONE)
+                continue;
+
+            if (needs_plus)
+                result += " + ";
+
+            result += registers::RegAccess::string(term);
+            needs_plus = true;
+        }
+
+        if (access.displacement || !needs_plus) {
+            if (needs_plus)
+                result += " + ";
+
+            result += std::to_string(access.displacement);
+        }
+
+        result += "]";
+        return result;
+    }
 };
 
 // TODO(louis): not good, this stuff idk should be tracked like inside the

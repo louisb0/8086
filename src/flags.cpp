@@ -14,7 +14,7 @@ void FlagState::set_flag(Flag f, bool value) noexcept {
         flags &= ~f;
 }
 
-std::string FlagState::change_string(FlagState before) const noexcept {
+std::string FlagState::format_changes(FlagState before) const noexcept {
     std::vector<std::string> changes;
 
     for (std::size_t i = 0, flag = ZF; flag <= SF; i++, flag <<= 1) {

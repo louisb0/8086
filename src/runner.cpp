@@ -2,7 +2,6 @@
 
 #include "decode.hpp"
 #include "instructions.hpp"
-#include "print.hpp"
 #include "runner.hpp"
 
 #include <iostream>
@@ -21,11 +20,21 @@ void Runner::run() noexcept {
         const auto &inst = *inst_optional;
         ip += inst.bytes.size();
 
-        print::instruction(inst);
-
-        flags::FlagState before = flags;
+        registers::RegFile before_regs = regfile;
+        flags::FlagState before_flags = flags;
         execute_instruction(inst);
-        std::cout << flags.change_string(before) << "\n";
+
+        std::string reg_changes = regfile.format_change(before_regs);
+        std::string flag_changes = flags.format_changes(before_flags);
+
+        std::cout << std::left << std::setw(40) << instructions::Instruction::string(inst);
+        if (!reg_changes.empty()) {
+            std::cout << "| regs [" << reg_changes << "]";
+            if (!flag_changes.empty()) {
+                std::cout << ", flags [" << flag_changes << "]";
+            }
+        }
+        std::cout << "\n";
     }
 
     std::cout << regfile.string() << "\n";

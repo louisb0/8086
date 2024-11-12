@@ -24,7 +24,7 @@ public:
     [[nodiscard]] bool test_flag(Flag f) const noexcept;
     void set_flag(Flag f, bool value) noexcept;
 
-    [[nodiscard]] std::string change_string(FlagState before) const noexcept;
+    [[nodiscard]] std::string format_changes(FlagState before) const noexcept;
 };
 
 } // namespace sim::flags

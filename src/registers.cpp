@@ -39,4 +39,44 @@ std::string RegFile::string() const noexcept {
     return ss.str();
 }
 
+// TODO(louis): fever dream please fix
+std::string RegFile::format_change(const RegFile &before) const noexcept {
+    std::vector<std::string> changes;
+    for (size_t i = 0; i < regs.size(); i++) {
+        if (regs[i] != before.regs[i]) {
+            u8 curr_high = regs[i] >> 8;
+            u8 curr_low = regs[i] & 0xFF;
+            u8 prev_high = before.regs[i] >> 8;
+            u8 prev_low = before.regs[i] & 0xFF;
+            if (curr_high != prev_high && curr_low != prev_low) {
+                std::stringstream ss;
+                ss << std::string(REG_NAMES[i]) << " -> 0x" << std::hex << std::uppercase << regs[i]
+                   << " (" << std::dec << static_cast<int16_t>(regs[i]) << ")";
+                changes.push_back(ss.str());
+            } else {
+                if (curr_high != prev_high && i < 4) {
+                    std::stringstream ss;
+                    ss << std::string(REG_NAMES_HIGH[i]) << " -> 0x" << std::hex << std::uppercase
+                       << static_cast<int>(curr_high) << " (" << std::dec
+                       << static_cast<int8_t>(curr_high) << ")";
+                    changes.push_back(ss.str());
+                }
+                if (curr_low != prev_low && i < 4) {
+                    std::stringstream ss;
+                    ss << std::string(REG_NAMES_LOW[i]) << " -> 0x" << std::hex << std::uppercase
+                       << static_cast<int>(curr_low) << " (" << std::dec
+                       << static_cast<int8_t>(curr_low) << ")";
+                    changes.push_back(ss.str());
+                }
+            }
+        }
+    }
+    std::string result;
+    for (size_t i = 0; i < changes.size(); i++) {
+        if (i > 0)
+            result += ", ";
+        result += changes[i];
+    }
+    return result;
+}
 } // namespace sim::registers
