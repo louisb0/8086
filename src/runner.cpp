@@ -63,21 +63,8 @@ void Runner::execute_instruction(const instructions::Instruction &inst) noexcept
     }
 }
 
-// TODO(louis): not very elegant having to deal with immediate separately
 void Runner::mov(const instructions::Instruction &inst) noexcept {
-    switch (inst.src.type) {
-    case instructions::Operand::Type::IMMEDIATE:
-        write_operand(inst.dst, inst.src.immediate);
-        break;
-
-    case instructions::Operand::Type::MEMORY:
-    case instructions::Operand::Type::REGISTER:
-        write_operand(inst.dst, read_operand(inst.src));
-        break;
-
-    default:
-        UNREACHABLE();
-    }
+    write_operand(inst.dst, read_operand(inst.src));
 }
 
 void Runner::jump(const instructions::Instruction &inst) noexcept {
