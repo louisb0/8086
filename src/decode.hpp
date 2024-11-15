@@ -18,7 +18,8 @@ namespace {
         u8 reg;
         u8 rm;
 
-        static InstructionFields from(const decode::table::Encoding &encoding, u8 first) noexcept {
+        static constexpr InstructionFields from(const decode::table::Encoding &encoding,
+                                                u8 first) noexcept {
             return {
                 .is_reg_dst = static_cast<bool>(encoding.d.read(first)),
                 .is_wide = static_cast<bool>(encoding.w.read(first)),
@@ -29,8 +30,8 @@ namespace {
             };
         }
 
-        static InstructionFields from(const decode::table::Encoding &encoding, u8 first,
-                                      u8 second) noexcept {
+        static constexpr InstructionFields from(const decode::table::Encoding &encoding, u8 first,
+                                                u8 second) noexcept {
             return {
                 .is_reg_dst = static_cast<bool>(encoding.d.read(first)),
                 .is_wide = static_cast<bool>(encoding.w.read(first)),

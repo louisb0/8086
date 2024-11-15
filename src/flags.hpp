@@ -21,7 +21,7 @@ private:
     u16 flags = 0;
 
 public:
-    [[nodiscard]] bool test_flag(Flag f) const noexcept;
+    [[nodiscard]] constexpr bool test_flag(Flag f) const noexcept;
     void set_flag(Flag f, bool value) noexcept;
 
     [[nodiscard]] std::string format_changes(FlagState before) const noexcept;

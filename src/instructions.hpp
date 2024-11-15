@@ -52,7 +52,7 @@ struct Operand {
         u16 immediate;
     };
 
-    [[nodiscard]] static Operand reg(u8 reg, bool is_wide) {
+    [[nodiscard]] static constexpr Operand reg(u8 reg, bool is_wide) {
         return Operand{
             .type = Type::REGISTER,
             .reg_access =
@@ -63,8 +63,8 @@ struct Operand {
         };
     }
 
-    [[nodiscard]] static Operand effective_address(u8 reg1, u8 reg2 = registers::NONE, u16 disp = 0,
-                                                   bool is_wide = true) {
+    [[nodiscard]] static constexpr Operand effective_address(u8 reg1, u8 reg2 = registers::NONE,
+                                                             u16 disp = 0, bool is_wide = true) {
         return Operand{
             .type = Type::MEMORY,
             .mem_access =
@@ -76,7 +76,7 @@ struct Operand {
         };
     }
 
-    [[nodiscard]] static Operand direct_address(u16 addr, bool is_wide) {
+    [[nodiscard]] static constexpr Operand direct_address(u16 addr, bool is_wide) {
         return Operand{
             .type = Type::MEMORY,
             .mem_access =
@@ -88,14 +88,14 @@ struct Operand {
         };
     }
 
-    [[nodiscard]] static Operand imm(u16 imm) {
+    [[nodiscard]] static constexpr Operand imm(u16 imm) {
         return Operand{
             .type = Type::IMMEDIATE,
             .immediate = imm,
         };
     }
 
-    [[nodiscard]] static Operand none() {
+    [[nodiscard]] static constexpr Operand none() {
         return Operand{
             .type = Type::NONE,
             .immediate = 0,

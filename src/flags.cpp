@@ -5,7 +5,7 @@
 
 namespace sim::flags {
 
-bool FlagState::test_flag(Flag f) const noexcept { return flags & f; }
+constexpr bool FlagState::test_flag(Flag f) const noexcept { return flags & f; }
 
 void FlagState::set_flag(Flag f, bool value) noexcept {
     if (value)
