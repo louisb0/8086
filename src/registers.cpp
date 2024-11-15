@@ -9,25 +9,21 @@
 
 namespace sim::registers {
 
-// TODO(louis): returning a ref here results in bad const correctness,
-// e.g. now read() cannot be labelled const
-u8 &RegFile::byte_ref(u8 index) noexcept {
-    u8 *bytes = reinterpret_cast<u8 *>(regs.data());
-    u8 reg_num = index & 0b11;
-    bool is_high = (index & 0b100) != 0;
+u16 RegFile::read(RegAccess access) const noexcept {
+    if (access.is_wide) {
+        return regs[access.index];
+    }
 
-    return bytes[2 * reg_num + (is_high ? 1 : 0)];
-}
-
-u16 RegFile::read(RegAccess access) noexcept {
-    return access.is_wide ? regs[access.index] : byte_ref(access.index);
+    const u8 *bytes = reinterpret_cast<const u8 *>(regs.data());
+    return bytes[2 * (access.index & 0b11) + ((access.is_wide) ? 0 : 1)] & 0xFF;
 }
 
 void RegFile::write(RegAccess access, u16 value) noexcept {
     if (access.is_wide) {
         regs[access.index] = value;
     } else {
-        byte_ref(access.index) = value & 0xFF;
+        u8 *bytes = reinterpret_cast<u8 *>(regs.data());
+        bytes[2 * (access.index & 0b11) + ((access.is_wide) ? 0 : 1)] = value & 0xFF;
     }
 
     recent_write = access;
@@ -53,7 +49,7 @@ std::string RegFile::string() const noexcept {
     return ss.str();
 }
 
-std::string RegFile::format_change(const RegFile &before) noexcept {
+std::string RegFile::format_change(const RegFile &before) const noexcept {
     const bool same_index = recent_write.index == before.recent_write.index;
     const bool both_wide = recent_write.is_wide && before.recent_write.is_wide;
     const bool equal_values = regs[recent_write.index] == before.regs[before.recent_write.index];

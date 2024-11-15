@@ -19,7 +19,7 @@ public:
 private:
     // TODO(louis): combine - good use for memory abstraction
     const std::vector<u8> instruction_memory;
-    std::array<u8, 1 << 16> data_memory; // NOTE(louis): 16bit as no segment registers
+    std::array<u8, 1 << 16> data_memory;
 
     registers::RegFile regfile;
     flags::FlagState flags;
@@ -31,7 +31,7 @@ private:
     void jump(const instructions::Instruction &inst) noexcept;
     void arithmetic(const instructions::Instruction &inst) noexcept;
 
-    u16 read_operand(const instructions::Operand &operand) noexcept;
+    [[nodiscard]] u16 read_operand(const instructions::Operand &operand) const noexcept;
     void write_operand(const instructions::Operand &operand, u16 value) noexcept;
 };
 

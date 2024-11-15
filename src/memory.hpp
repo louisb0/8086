@@ -42,30 +42,33 @@ struct MemoryAccess {
 };
 
 // TODO(louis): not good, this stuff idk should be tracked like inside the
-// decoder but hte decoder is also stateless so ???? feels weird
-// then we also have like the actual memory interpretation logic in runner
-// so ???
+// decoder but the decoder is also stateless so would be like a hacky reset
+// thing on each iteration
+//
+// then we also have like the actual memory interpretation logic in runner??
+//
+// ODR?
 class MemoryReader {
 public:
     MemoryReader(const std::vector<u8> &memory, std::size_t address)
         : memory(memory), start_address(address), current_address(address) {}
 
-    u8 peek_byte() noexcept { return memory.at(current_address); }
+    [[nodiscard]] u8 peek_byte() const noexcept { return memory.at(current_address); }
 
-    u8 byte() noexcept {
+    [[nodiscard]] u8 byte() noexcept {
         u8 byte = memory.at(current_address++);
         bytes_read.push_back(byte);
         return byte;
     }
 
-    u16 word() noexcept {
+    [[nodiscard]] u16 word() noexcept {
         u16 low = byte();
         u16 high = byte();
         return (high << 8) | low;
     }
 
-    std::size_t get_start_address() const { return start_address; }
-    std::vector<u8> get_bytes_read() const { return bytes_read; }
+    [[nodiscard]] std::size_t get_start_address() const { return start_address; }
+    [[nodiscard]] std::vector<u8> get_bytes_read() const { return bytes_read; }
 
 private:
     const std::vector<u8> &memory;

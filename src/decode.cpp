@@ -22,8 +22,8 @@ namespace {
         {registers::BX, registers::NONE},
     }};
 
-    instructions::Operand decode_rm(sim::mem::MemoryReader &reader, bool is_wide, u8 mod,
-                                    u8 rm) noexcept {
+    [[nodiscard]] const instructions::Operand decode_rm(sim::mem::MemoryReader &reader,
+                                                        bool is_wide, u8 mod, u8 rm) noexcept {
         using instructions::Operand;
 
         switch (mod) {
@@ -54,9 +54,10 @@ namespace {
         }
     }
 
-    instructions::Instruction rm_with_reg(sim::mem::MemoryReader &reader,
-                                          const table::Encoding &encoding, u8 first) noexcept {
-        auto fields = table::InstructionFields::from(encoding, first, reader.byte());
+    [[nodiscard]] const instructions::Instruction rm_with_reg(sim::mem::MemoryReader &reader,
+                                                              const table::Encoding &encoding,
+                                                              u8 first) noexcept {
+        auto fields = InstructionFields::from(encoding, first, reader.byte());
 
         instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
         instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
@@ -70,9 +71,9 @@ namespace {
         };
     }
 
-    instructions::Instruction imm_to_rm(sim::mem::MemoryReader &reader,
-                                        const table::Encoding &encoding, u8 first) noexcept {
-        auto fields = table::InstructionFields::from(encoding, first, reader.byte());
+    [[nodiscard]] const instructions::Instruction
+    imm_to_rm(sim::mem::MemoryReader &reader, const table::Encoding &encoding, u8 first) noexcept {
+        auto fields = InstructionFields::from(encoding, first, reader.byte());
 
         instructions::Operand rm = decode_rm(reader, fields.is_wide, fields.mod, fields.rm);
 
@@ -96,9 +97,9 @@ namespace {
         };
     }
 
-    instructions::Instruction imm_to_reg(sim::mem::MemoryReader &reader,
-                                         const table::Encoding &encoding, u8 first) noexcept {
-        auto fields = table::InstructionFields::from(encoding, first);
+    [[nodiscard]] const instructions::Instruction
+    imm_to_reg(sim::mem::MemoryReader &reader, const table::Encoding &encoding, u8 first) noexcept {
+        auto fields = InstructionFields::from(encoding, first);
 
         instructions::Operand reg = instructions::Operand::reg(fields.reg, fields.is_wide);
         instructions::Operand imm =
@@ -113,9 +114,9 @@ namespace {
         };
     }
 
-    instructions::Instruction imm_to_acc(sim::mem::MemoryReader &reader,
-                                         const table::Encoding &encoding, u8 first) noexcept {
-        auto fields = table::InstructionFields::from(encoding, first);
+    [[nodiscard]] const instructions::Instruction
+    imm_to_acc(sim::mem::MemoryReader &reader, const table::Encoding &encoding, u8 first) noexcept {
+        auto fields = InstructionFields::from(encoding, first);
 
         instructions::Operand reg = instructions::Operand::reg(0b000, fields.is_wide);
         instructions::Operand imm =
@@ -129,8 +130,9 @@ namespace {
             .bytes = reader.get_bytes_read(),
         };
     }
-    instructions::Instruction jump(sim::mem::MemoryReader &reader,
-                                   const table::Encoding &encoding) noexcept {
+
+    [[nodiscard]] const instructions::Instruction jump(sim::mem::MemoryReader &reader,
+                                                       const table::Encoding &encoding) noexcept {
         instructions::Operand imm = instructions::Operand::imm(reader.byte());
 
         return instructions::Instruction{
@@ -143,8 +145,8 @@ namespace {
     }
 } // namespace
 
-std::optional<instructions::Instruction> try_decode(const std::vector<u8> &memory,
-                                                    u8 address) noexcept {
+const std::optional<instructions::Instruction> try_decode(const std::vector<u8> &memory,
+                                                          u8 address) noexcept {
     mem::MemoryReader reader(memory, address);
     u8 byte = reader.byte();
 

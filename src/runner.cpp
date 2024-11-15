@@ -112,7 +112,7 @@ void Runner::arithmetic(const instructions::Instruction &inst) noexcept {
     flags.set_flag(flags::Flag::SF, res & (inst.dst.reg_access.is_wide ? 0x8000 : 0x80));
 }
 
-u16 Runner::read_operand(const instructions::Operand &operand) noexcept {
+u16 Runner::read_operand(const instructions::Operand &operand) const noexcept {
     switch (operand.type) {
     case instructions::Operand::Type::REGISTER:
         return regfile.read(operand.reg_access);

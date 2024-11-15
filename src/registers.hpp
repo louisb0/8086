@@ -57,10 +57,8 @@ private:
     std::array<u16, 8> regs = {};
     RegAccess recent_write; // for formatting change
 
-    [[nodiscard]] u8 &byte_ref(u8 index) noexcept;
-
 public:
-    [[nodiscard]] u16 read(RegAccess access) noexcept;
+    [[nodiscard]] u16 read(RegAccess access) const noexcept;
     void write(RegAccess access, u16 value) noexcept;
 
     [[nodiscard]] std::string string() const noexcept;
