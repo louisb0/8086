@@ -17,19 +17,33 @@ struct BitField {
     static constexpr BitField create(u8 mask) noexcept {
         u8 shift = 0;
         u8 temp_mask = mask;
+
         while (temp_mask && !(temp_mask & 1)) {
             shift++;
             temp_mask >>= 1;
         }
+
         return BitField{mask, shift};
     }
+};
+
+struct MatchCondition {
+    BitField mask;
+    u8 equals;
+
+    static constexpr MatchCondition create(u8 mask, u8 equals) noexcept {
+        return MatchCondition{BitField::create(mask), equals};
+    }
+
+    // NOTE(louis): this match condition will always evaluate to 'true'
+    static constexpr MatchCondition none() noexcept { return MatchCondition{BitField{0, 0}, 0}; }
 };
 
 struct Encoding {
     instructions::Mnemonic mnemonic;
 
-    u8 mask;
-    u8 equals;
+    MatchCondition first_byte_match;
+    MatchCondition second_byte_match;
 
     BitField d;
     BitField s;
@@ -46,21 +60,15 @@ struct Encoding {
         JUMP,
     } type;
 
-    // TODO(louis): this is bad, many identical entries in the table for different encodings.
-    // maybe we could abstract mask/equals into like a comparison object and we can have 1or2
-    // comparisons to be true before an encoding matches
-    static instructions::Mnemonic mnemonic_from_reg(u8 reg) {
-        switch (reg) {
-        case 0b000:
-            return instructions::Mnemonic::ADD;
-        case 0b101:
-            return instructions::Mnemonic::SUB;
-        case 0b111:
-            return instructions::Mnemonic::CMP;
-        default:
-            UNREACHABLE();
-        }
-    };
+    static constexpr bool matches(const decode::table::Encoding &encoding, u8 first, u8 second) {
+        const bool first_matches =
+            encoding.first_byte_match.mask.read(first) == encoding.first_byte_match.equals;
+
+        const bool second_matches =
+            encoding.second_byte_match.mask.read(second) == encoding.second_byte_match.equals;
+
+        return first_matches && second_matches;
+    }
 };
 
 extern const std::vector<Encoding> instruction_encodings;

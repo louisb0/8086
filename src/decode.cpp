@@ -88,7 +88,7 @@ namespace {
         }
 
         return instructions::Instruction{
-            .mnemonic = table::Encoding::mnemonic_from_reg(fields.reg),
+            .mnemonic = encoding.mnemonic,
             .dst = rm,
             .src = instructions::Operand::imm(imm),
             .address = reader.get_start_address(),
@@ -149,9 +149,8 @@ std::optional<instructions::Instruction> try_decode(const std::vector<u8> &memor
     u8 byte = reader.byte();
 
     for (const auto &encoding : table::instruction_encodings) {
-        if ((byte & encoding.mask) != encoding.equals) {
+        if (!table::Encoding::matches(encoding, byte, reader.peek_byte()))
             continue;
-        }
 
         instructions::Instruction instruction;
         switch (encoding.type) {

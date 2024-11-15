@@ -50,6 +50,8 @@ public:
     MemoryReader(const std::vector<u8> &memory, std::size_t address)
         : memory(memory), start_address(address), current_address(address) {}
 
+    u8 peek_byte() noexcept { return memory.at(current_address); }
+
     u8 byte() noexcept {
         u8 byte = memory.at(current_address++);
         bytes_read.push_back(byte);

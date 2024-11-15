@@ -56,9 +56,9 @@ std::string RegFile::string() const noexcept {
 std::string RegFile::format_change(const RegFile &before) noexcept {
     const bool same_index = recent_write.index == before.recent_write.index;
     const bool both_wide = recent_write.is_wide && before.recent_write.is_wide;
-    const bool no_change = regs[recent_write.index] == before.regs[before.recent_write.index];
+    const bool equal_values = regs[recent_write.index] == before.regs[before.recent_write.index];
 
-    if (same_index && both_wide && no_change)
+    if (same_index && both_wide && equal_values)
         return "";
 
     std::stringstream ss;
