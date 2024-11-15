@@ -3,12 +3,14 @@
 #include "registers.hpp"
 
 #include <iomanip>
+#include <ios>
 #include <sstream>
 #include <string>
-#include <vector>
 
 namespace sim::registers {
 
+// TODO(louis): returning a ref here results in bad const correctness,
+// e.g. now read() cannot be labelled const
 u8 &RegFile::byte_ref(u8 index) noexcept {
     u8 *bytes = reinterpret_cast<u8 *>(regs.data());
     u8 reg_num = index & 0b11;
@@ -27,56 +29,52 @@ void RegFile::write(RegAccess access, u16 value) noexcept {
     } else {
         byte_ref(access.index) = value & 0xFF;
     }
+
+    recent_write = access;
 }
 
 std::string RegFile::string() const noexcept {
     std::stringstream ss;
+    ss << std::left << std::setw(2);
+
     for (size_t i = 0; i < regs.size(); i++) {
-        ss << std::left << std::setw(2) << REG_NAMES[i] << ": 0x" << std::right << std::hex
-           << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<u16>(regs[i])
-           << '\n';
+        if (regs[i] == 0)
+            continue;
+
+        ss << REG_NAMES[i] << ": 0x";
+
+        ss << std::right << std::hex << std::uppercase << std::setfill('0') << std::setw(4);
+        ss << static_cast<u16>(regs[i]);
+
+        if (i != regs.size() - 1)
+            ss << "\n";
     }
+
     return ss.str();
 }
 
-// TODO(louis): fever dream please fix
-std::string RegFile::format_change(const RegFile &before) const noexcept {
-    std::vector<std::string> changes;
-    for (size_t i = 0; i < regs.size(); i++) {
-        if (regs[i] != before.regs[i]) {
-            u8 curr_high = regs[i] >> 8;
-            u8 curr_low = regs[i] & 0xFF;
-            u8 prev_high = before.regs[i] >> 8;
-            u8 prev_low = before.regs[i] & 0xFF;
-            if (curr_high != prev_high && curr_low != prev_low) {
-                std::stringstream ss;
-                ss << std::string(REG_NAMES[i]) << " -> 0x" << std::hex << std::uppercase << regs[i]
-                   << " (" << std::dec << static_cast<int16_t>(regs[i]) << ")";
-                changes.push_back(ss.str());
-            } else {
-                if (curr_high != prev_high && i < 4) {
-                    std::stringstream ss;
-                    ss << std::string(REG_NAMES_HIGH[i]) << " -> 0x" << std::hex << std::uppercase
-                       << static_cast<int>(curr_high) << " (" << std::dec
-                       << static_cast<int8_t>(curr_high) << ")";
-                    changes.push_back(ss.str());
-                }
-                if (curr_low != prev_low && i < 4) {
-                    std::stringstream ss;
-                    ss << std::string(REG_NAMES_LOW[i]) << " -> 0x" << std::hex << std::uppercase
-                       << static_cast<int>(curr_low) << " (" << std::dec
-                       << static_cast<int8_t>(curr_low) << ")";
-                    changes.push_back(ss.str());
-                }
-            }
-        }
+std::string RegFile::format_change(const RegFile &before) noexcept {
+    const bool same_index = recent_write.index == before.recent_write.index;
+    const bool both_wide = recent_write.is_wide && before.recent_write.is_wide;
+    const bool no_change = regs[recent_write.index] == before.regs[before.recent_write.index];
+
+    if (same_index && both_wide && no_change)
+        return "";
+
+    std::stringstream ss;
+
+    ss << RegAccess::string(recent_write) << " -> ";
+    ss << "0x" << std::hex << std::uppercase << regs[recent_write.index];
+
+    ss << " (" << std::dec;
+    if (recent_write.is_wide) {
+        ss << static_cast<s16>(read(recent_write));
+    } else {
+        ss << static_cast<s8>(read(recent_write));
     }
-    std::string result;
-    for (size_t i = 0; i < changes.size(); i++) {
-        if (i > 0)
-            result += ", ";
-        result += changes[i];
-    }
-    return result;
+    ss << ")";
+
+    return ss.str();
 }
+
 } // namespace sim::registers

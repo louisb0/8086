@@ -55,6 +55,7 @@ struct RegAccess {
 class RegFile {
 private:
     std::array<u16, 8> regs = {};
+    RegAccess recent_write; // for formatting change
 
     [[nodiscard]] u8 &byte_ref(u8 index) noexcept;
 
@@ -63,7 +64,7 @@ public:
     void write(RegAccess access, u16 value) noexcept;
 
     [[nodiscard]] std::string string() const noexcept;
-    [[nodiscard]] std::string format_change(const RegFile &before) const noexcept;
+    [[nodiscard]] std::string format_change(const RegFile &before) noexcept;
 };
 
 } // namespace sim::registers

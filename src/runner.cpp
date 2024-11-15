@@ -2,6 +2,7 @@
 
 #include "decode.hpp"
 #include "instructions.hpp"
+#include "registers.hpp"
 #include "runner.hpp"
 
 #include <iostream>
@@ -10,34 +11,35 @@ namespace sim::runner {
 
 void Runner::run() noexcept {
     while (ip < instruction_memory.size()) {
-        auto inst_optional = decode::try_decode(instruction_memory, ip);
-        // TODO(louis): something error handling
+        const auto inst_optional = decode::try_decode(instruction_memory, ip);
         if (!inst_optional) {
+            std::cerr << "failed to decode instruction at 0x" << std::hex << ip << "\n";
             break;
         }
 
-        // TODO(louis): wtf? difference between .value()?
-        const auto &inst = *inst_optional;
+        const auto &inst = inst_optional.value();
         ip += inst.bytes.size();
 
-        registers::RegFile before_regs = regfile;
-        flags::FlagState before_flags = flags;
+        const auto regfile_before = regfile;
+        const auto flags_before = flags;
+
         execute_instruction(inst);
 
-        std::string reg_changes = regfile.format_change(before_regs);
-        std::string flag_changes = flags.format_changes(before_flags);
+        const auto reg_changes = regfile.format_change(regfile_before);
+        const auto flag_changes = flags.format_changes(flags_before);
 
         std::cout << std::left << std::setw(40) << instructions::Instruction::string(inst);
+
         if (!reg_changes.empty()) {
-            std::cout << "| regs [" << reg_changes << "]";
+            std::cout << "| r[" << reg_changes << "]";
             if (!flag_changes.empty()) {
-                std::cout << ", flags [" << flag_changes << "]";
+                std::cout << ", f[" << flag_changes << "]";
             }
         }
-        std::cout << "\n";
+        std::cout << '\n';
     }
 
-    std::cout << regfile.string() << "\n";
+    std::cout << '\n' << regfile.string();
 }
 
 void Runner::execute_instruction(const instructions::Instruction &inst) noexcept {
@@ -79,12 +81,10 @@ void Runner::mov(const instructions::Instruction &inst) noexcept {
 }
 
 void Runner::jump(const instructions::Instruction &inst) noexcept {
-    // TODO(louis): what about 16 bit displacement? we don't store the width
-    // on the immediate
     switch (inst.mnemonic) {
     case instructions::Mnemonic::JNE:
         if (!flags.test_flag(flags::Flag::ZF)) {
-            ip += static_cast<int8_t>(inst.dst.immediate);
+            ip += static_cast<s8>(inst.dst.immediate);
         }
 
         break;
