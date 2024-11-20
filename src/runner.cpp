@@ -10,6 +10,8 @@
 namespace sim::runner {
 
 void Runner::run() noexcept {
+    // NOTE(louis): This is inefficient, trying the whole table until we get a hit.
+    // We could pre-compute a jump table or something, but I want to move onto another project :)
     while (ip < instruction_memory.size()) {
         const auto inst_optional = decode::try_decode(instruction_memory, ip);
         if (!inst_optional) {
